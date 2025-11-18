@@ -29,6 +29,16 @@ module.exports = (sequelize, DataTypes) => {
     hum: {
       type: DataTypes.FLOAT,
       allowNull: true
+    },
+    tempHistory: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [0, 0, 0, 0, 0, 0, 0]
+    },
+    tempIndex: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     }
   }, {
     sequelize,

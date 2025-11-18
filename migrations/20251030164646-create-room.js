@@ -30,6 +30,16 @@ module.exports = {
         type: Sequelize.FLOAT,
         allowNull: true
       },
+      tempHistory: {
+        type: Sequelize.JSON,
+        allowNull: false,
+        defaultValue: [0, 0, 0, 0, 0, 0, 0]
+      },
+      tempIndex: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
