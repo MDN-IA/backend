@@ -20,14 +20,14 @@ async function registerSample(req, res) {
       }
     });
 
-    // ✅ ACTUALIZAR TEMPERATURA EN TIEMPO REAL
+    // ACTUALIZAR TEMPERATURA EN TIEMPO REAL
     room.temp = temp;
     room.light = light;
     room.hum = hum;
     
     await room.save();
 
-    // ✅ GUARDAR LA PRIMERA TEMPERATURA INMEDIATAMENTE
+    // GUARDAR LA PRIMERA TEMPERATURA INMEDIATAMENTE
     if (!firstTempSaved.has(roomCode)) {
       if (!room.tempHistory || !Array.isArray(room.tempHistory)) {
         room.tempHistory = [0, 0, 0, 0, 0, 0, 0];
@@ -42,12 +42,12 @@ async function registerSample(req, res) {
 
       await room.save();
       firstTempSaved.set(roomCode, true);
-      console.log(`🟢 Primera temperatura guardada en posición 0: ${temp}`);
+      console.log(` Primera temperatura guardada en posición 0: ${temp}`);
     }
 
-    // ✅ INICIAR TIMER DE ACTUALIZACIÓN DEL ARRAY (cada 30 segundos)
+    // INICIAR TIMER DE ACTUALIZACIÓN DEL ARRAY (cada 30 segundos)
     if (!tempHistoryTimers.has(roomCode)) {
-      console.log(`⏲️ Iniciando timer de 30 segundos para ${roomCode}`);
+      console.log(` Iniciando timer de 30 segundos para ${roomCode}`);
       
       const timer = setInterval(async () => {
         try {
@@ -67,7 +67,7 @@ async function registerSample(req, res) {
 
           // Guardar la temperatura actual en la posición actual
           updatedRoom.tempHistory[updatedRoom.tempIndex] = updatedRoom.temp || 0;
-          console.log(`📝 Temperatura ${updatedRoom.temp} guardada en posición ${updatedRoom.tempIndex}`);
+          console.log(` Temperatura ${updatedRoom.temp} guardada en posición ${updatedRoom.tempIndex}`);
 
           // Avanzar el índice para la próxima
           updatedRoom.tempIndex = (updatedRoom.tempIndex + 1) % 7;
@@ -77,7 +77,7 @@ async function registerSample(req, res) {
           updatedRoom.changed('tempIndex', true);
 
           await updatedRoom.save();
-          console.log(`📊 Array para ${roomCode}:`, updatedRoom.tempHistory, `| Próxima posición: ${updatedRoom.tempIndex}`);
+          console.log(` Array para ${roomCode}:`, updatedRoom.tempHistory, `| Próxima posición: ${updatedRoom.tempIndex}`);
         } catch (e) {
           console.error(`Error actualizando array para ${roomCode}:`, e.message);
         }
