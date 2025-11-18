@@ -4,8 +4,9 @@ const cors = require('cors');
 const roomsRoutes = require('./routes/rooms.routes');
 const samplesRoutes = require('./routes/samples.routes');
 const recoRoutes = require('./routes/reco.routes');
+const usersRoutes = require('./routes/users.routes');
 
-console.log(' Rutas cargadas correctamente');
+console.log('✓ Rutas cargadas correctamente');
 
 const app = express();
 app.use(cors());
@@ -22,7 +23,12 @@ app.get('/api', (req, res) => {
       rooms: '/api/rooms',
       roomById: '/api/rooms/:id',
       samples: '/api/samples',
-      recommendations: '/api/recommendations'
+      recommendations: '/api/recommendations',
+      users: '/api/users',
+      userById: '/api/users/:id',
+      userByEmail: '/api/users/email/:correo',
+      userByQR: '/api/users/qr/:qr',
+      login: '/api/users/login'
     }
   });
 });
@@ -31,5 +37,7 @@ console.log('Registrando rutas...');
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/samples', samplesRoutes);
 app.use('/api/recommendations', recoRoutes);
+app.use('/api/users', usersRoutes);
+console.log('✓ Rutas registradas: /api/rooms, /api/samples, /api/recommendations, /api/users');
 
 module.exports = app;
