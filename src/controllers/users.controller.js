@@ -173,7 +173,7 @@ async function createUser(req, res) {
 
     if (e.name === 'SequelizeValidationError') {
       return res.status(400).json({
-        error: 'Error de validación',
+        error: 'Error: Check the data introduced',
         details: e.errors.map(err => err.message)
       });
     }
