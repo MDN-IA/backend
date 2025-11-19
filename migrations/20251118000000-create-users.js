@@ -38,6 +38,11 @@ module.exports = {
         allowNull: false,
         defaultValue: false
       },
+      activeRoomCode: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Código de la sala en la que el usuario está actualmente activo'
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

@@ -1,5 +1,7 @@
 const { Users } = require('../models');
 const bcrypt = require('bcrypt');
+const QRCode = require('qrcode');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Obtener todos los usuarios
@@ -118,7 +120,7 @@ async function getUserByQR(req, res) {
  */
 async function createUser(req, res) {
   try {
-    const { nombre, correo, contrasena, qr, preferenciaTemperatura, esAdmin } = req.body;
+    const { nombre, correo, contrasena, preferenciaTemperatura, esAdmin } = req.body;
     console.log(`[createUser] Creando usuario: ${nombre} (${correo})`);
 
     // Validar campos requeridos
@@ -143,16 +145,20 @@ async function createUser(req, res) {
     const hashedPassword = await bcrypt.hash(contrasena, 10);
     console.log('[createUser] Contraseña hasheada correctamente');
 
+    const qrCodeValue = uuidv4(); // Generar QR único
+
     const newUser = await Users.create({
       nombre,
       correo,
       contrasena: hashedPassword,
-      qr: qr || null,
+      qr: qrCodeValue, // Guardar QR
       preferenciaTemperatura: preferenciaTemperatura || 'WARM',
       esAdmin: esAdmin || false
     });
 
     console.log(`[createUser] Usuario creado exitosamente con ID: ${newUser.id} - Admin: ${newUser.esAdmin}`);
+    console.log(`[createUser] Usuario creado con QR: ${qrCodeValue}`);
+
 
     // Devolver usuario sin contraseña
     const userResponse = newUser.toJSON();
@@ -341,14 +347,46 @@ async function loginUser(req, res) {
   }
 }
 
-module.exports = {
-  getUsers,
-  getUserById,
-  getUserByEmail,
-  getUserByQR,
-  createUser,
-  updateUser,
-  deleteUser,
-  loginUser
-};
+/** 
+ * Obtener imagen PNG del QR de un usuario
+ */
+async function getQRImage(req, res) {
+  try {
+    const { id } = req.params;
+    console.log(`[getQRImage] Obteniendo imagen QR para usuario con ID: ${id}`);
+
+    const user = await Users.findByPk(id);
+    
+    if (!user || !user.qr) {
+      console.log(`[getQRImage] Usuario o QR no encontrado para ID: ${id}`);
+      return res.status(404).json({ error: 'Usuario o QR no encontrado' });
+    }
+
+    console.log(`[getQRImage] Generando imagen QR para: ${user.nombre}`);
+
+    const pngDataUrl = await QRCode.toDataURL(user.qr, { 
+      margin: 1, 
+      scale: 6,
+      errorCorrectionLevel: 'H'
+    });
+
+    const base64 = pngDataUrl.split(',')[1];
+    const buffer = Buffer.from(base64, 'base64');
+
+    console.log(`[getQRImage] Enviando imagen QR: ${buffer.length} bytes`);
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+
+    console.log(`[getQRImage] Imagen QR enviada exitosamente para usuario: ${user.nombre}`);
+
+  } catch (e) {
+    console.error(`[getQRImage] Error: ${e.message}`);
+    res.status(500).json({ error: 'Error generando QR', details: e.message });
+  }
+}
+
+module.exports = { getUsers, getUserById, getUserByEmail, getUserByQR, createUser, updateUser, deleteUser, loginUser, getQRImage };
+
 

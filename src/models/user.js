@@ -75,6 +75,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: false,
       comment: 'Indica si el usuario tiene permisos de administrador'
+    },
+    activeRoomCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Sala en la que el usuario está actualmente'
     }
   }, {
     sequelize,
