@@ -9,18 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout código
-      uses: actions/checkout@v4
-      
-    - name: Configurar Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Instalar dependencias
-      run: npm install
-      
     - name: Desplegar en Digital Ocean
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -28,25 +16,22 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "Iniciando despliegue automático..."
+          echo " Iniciando despliegue automático..."
           cd ~/backend
           
-          # Guardar cambios locales si existen
-          git stash
-          
           # Pull del repositorio
+          echo " Descargando últimos cambios..."
           git pull origin main
           
-          # Instalar dependencias
-          npm install
+          # EJECUTAR SCRIPT DE LIMPIEZA
+          echo " Ejecutando limpieza..."
+          chmod +x ./clean-docker.sh
+          ./clean-docker.sh
           
-          # Parar y reconstruir contenedores Docker
-          docker-compose down
-          docker-compose build --no-cache
-          docker-compose up -d
-          
-          # Limpiar recursos no utilizados
-          docker system prune -f
+          # EJECUTAR SCRIPT DE INICIO
+          echo "Iniciando contenedores..."
+          chmod +x ./start-docker.sh
+          ./start-docker.sh
           
           echo "Despliegue completado"
           docker-compose ps
