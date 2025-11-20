@@ -16,8 +16,6 @@ module.exports = {
     const qr5 = uuidv4();
     const qr6 = uuidv4();
 
-    
-
     await queryInterface.bulkInsert('Users', [
       {
         nombre: 'Juan Pérez',

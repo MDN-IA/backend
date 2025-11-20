@@ -79,6 +79,7 @@ module.exports = (sequelize, DataTypes) => {
     activeRoomCode: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue: null,
       comment: 'Sala en la que el usuario está actualmente'
     },
     resetToken: {
