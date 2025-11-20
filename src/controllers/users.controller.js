@@ -349,42 +349,44 @@ async function loginUser(req, res) {
   }
 }
 
-/** 
- * Obtener imagen PNG del QR de un usuario
+/**
+ * Obtener imagen QR del usuario
  */
 async function getQRImage(req, res) {
   try {
-    const { id } = req.params;
-    console.log(`[getQRImage] Obteniendo imagen QR para usuario con ID: ${id}`);
+    const userId = req.params.userId;
+    console.log(`[getQRImage] Solicitando QR para usuario: ${userId}`);
 
-    const user = await Users.findByPk(id);
-    
-    if (!user || !user.qr) {
-      console.log(`[getQRImage] Usuario o QR no encontrado para ID: ${id}`);
-      return res.status(404).json({ error: 'Usuario o QR no encontrado' });
+    const user = await Users.findByPk(userId);
+    if (!user) {
+      console.log(`[getQRImage] Usuario no encontrado: ${userId}`);
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    console.log(`[getQRImage] Generando imagen QR para: ${user.nombre}`);
+    // ← AQUÍ: Generar QR con el ID del usuario
+    // El QR ahora contiene: "USER_ID:5" (por ejemplo)
+    const qrData = `USER_ID:${userId}`;
+    
+    console.log(`[getQRImage] Generando QR con datos: '${qrData}'`);
 
-    const pngDataUrl = await QRCode.toDataURL(user.qr, { 
-      margin: 1, 
-      scale: 6,
-      errorCorrectionLevel: 'H'
+    const qrImage = await QRCode.toBuffer(qrData, {
+      errorCorrectionLevel: 'H',
+      type: 'image/png',
+      quality: 0.95,
+      margin: 1,
+      width: 300,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
     });
 
-    const base64 = pngDataUrl.split(',')[1];
-    const buffer = Buffer.from(base64, 'base64');
+    console.log(`[getQRImage] QR generado exitosamente: ${qrImage.length} bytes`);
 
-    console.log(`[getQRImage] Enviando imagen QR: ${buffer.length} bytes`);
-
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Length', buffer.length);
-    res.send(buffer);
-
-    console.log(`[getQRImage] Imagen QR enviada exitosamente para usuario: ${user.nombre}`);
-
+    res.type('image/png');
+    res.send(qrImage);
   } catch (e) {
-    console.error(`[getQRImage] Error: ${e.message}`);
+    console.error(`[getQRImage] Error generando QR:`, e.message);
     res.status(500).json({ error: 'Error generando QR', details: e.message });
   }
 }
