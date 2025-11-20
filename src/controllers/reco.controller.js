@@ -10,7 +10,7 @@ async function recommendRoom(req, res) {
   try {
     const pref = (req.query.pref || 'templada').toLowerCase();
     const rooms = await Room.findAll({ where: { available: true } });
-    if (!rooms.length) return res.json({ message: 'No hay salas disponibles', rooms: [] });
+    if (!rooms.length) return res.json({ message: 'No rooms available', rooms: [] });
 
     const ideal = idealByPref(pref);
     console.log(` Temperatura ideal para '${pref}': ${ideal}°C`);
