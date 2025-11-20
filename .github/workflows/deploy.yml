@@ -1,0 +1,34 @@
+name: Deploy to Digital Ocean
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Desplegar en Digital Ocean
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          echo "Iniciando despliegue automático..."
+          cd ~/backend
+          
+          # Pull del repositorio
+          echo "Descargando últimos cambios..."
+          git pull origin main
+          
+          # EJECUTAR SCRIPT DE LIMPIEZA
+          echo "Ejecutando limpieza completa..."
+          chmod +x ./clean-docker.sh
+          echo "y" | ./clean-docker.sh
+          
+          # EJECUTAR Y VERIFICAR INICIO
+          echo "Iniciando contenedores en segundo plano..."
+          chmod +x ./start-docker.sh
+          ./start-docker.sh
