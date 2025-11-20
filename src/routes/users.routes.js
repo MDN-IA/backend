@@ -8,7 +8,10 @@ const {
   updateUser,
   deleteUser,
   loginUser,
-  getQRImage
+  getQRImage,
+  forgotPassword,
+  verifyResetToken,
+  resetPassword
 } = require('../controllers/users.controller');
 
 // Obtener todos los usuarios
@@ -32,12 +35,19 @@ router.post('/', createUser);
 // Obtener usuario por ID (debe ir después de las rutas específicas)
 router.get('/:id', getUserById);
 
-
 // Actualizar usuario
 router.put('/:id', updateUser);
 
 // Eliminar usuario
 router.delete('/:id', deleteUser);
 
-module.exports = router;
+// Solicitar reset de contraseña
+router.post('/forgot-password', forgotPassword);
 
+// Reset de contraseña con token
+router.post('/reset-password', resetPassword);
+
+// Verificar token de reset
+router.get('/verify-reset-token/:token', verifyResetToken);
+
+module.exports = router;

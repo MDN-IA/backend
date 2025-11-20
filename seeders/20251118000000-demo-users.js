@@ -14,6 +14,9 @@ module.exports = {
     const qr3 = uuidv4();
     const qr4 = uuidv4();
     const qr5 = uuidv4();
+    const qr6 = uuidv4();
+
+    
 
     await queryInterface.bulkInsert('Users', [
       {
@@ -65,6 +68,17 @@ module.exports = {
         correo: 'david.rodriguez@example.com',
         contrasena: hashedPassword,
         qr: qr5,
+        preferenciaTemperatura: 'COLD',
+        esAdmin: false,
+        activeRoomCode: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        nombre: 'Mario Caudevilla',
+        correo: 'mario9trzn@gmail.com',
+        contrasena: hashedPassword,
+        qr: qr6,
         preferenciaTemperatura: 'COLD',
         esAdmin: false,
         activeRoomCode: null,

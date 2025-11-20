@@ -43,6 +43,16 @@ module.exports = {
         allowNull: true,
         comment: 'Código de la sala en la que el usuario está actualmente activo'
       },
+      resetToken: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Token para restablecer la contraseña'
+      },
+      resetTokenExpiration: {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Fecha de expiración del token para restablecer la contraseña'
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

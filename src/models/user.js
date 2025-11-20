@@ -80,6 +80,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
       comment: 'Sala en la que el usuario está actualmente'
+    },
+    resetToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Token para restablecer la contraseña'
+    },
+    resetTokenExpiration: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Fecha de expiración del token para restablecer la contraseña'
     }
   }, {
     sequelize,
