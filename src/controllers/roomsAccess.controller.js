@@ -1,133 +1,155 @@
 const { Users, Rooms, sequelize } = require('../models');
 
 /**
- * Registrar entrada a una sala
+ * Registrar acceso a una sala (entrada o salida automática)
+ * Recibe: userId y roomId (o qr y roomCode para compatibilidad)
  */
-async function enterRoom(req, res) {
-  const { qr, roomCode } = req.body;
+async function registerRoomAccess(req, res) {
+  // Soporta ambos formatos
+  const userId = req.body.userId || req.body.id;
+  const roomId = req.body.roomId;
+  const qr = req.body.qr;
+  const roomCode = req.body.roomCode;
 
-  if (!qr || !roomCode) {
-    return res.status(400).json({ error: 'qr y roomCode requeridos' });
+  if (!roomId && !roomCode) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'roomId o roomCode requerido' 
+    });
+  }
+
+  if (!userId && !qr) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'userId o qr requerido' 
+    });
   }
 
   const t = await sequelize.transaction();
 
   try {
-    const user = await Users.findOne({ where: { qr }, transaction: t });
+    // Buscar usuario por ID o QR
+    const user = await Users.findOne({ 
+      where: qr ? { qr } : { id: userId },
+      transaction: t 
+    });
+    
     if (!user) {
       await t.rollback();
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Usuario no encontrado' 
+      });
     }
 
-    const room = await Rooms.findOne({ where: { code: roomCode }, transaction: t });
+    // Buscar sala por ID o código
+    const room = await Rooms.findOne({ 
+      where: roomCode ? { code: roomCode } : { id: roomId },
+      transaction: t 
+    });
+    
     if (!room) {
       await t.rollback();
-      return res.status(404).json({ error: 'Sala no encontrada' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Sala no encontrada' 
+      });
     }
 
-    if (user.activeRoomCode === roomCode) {
-      await t.rollback();
-      return res.status(409).json({ error: 'Usuario ya está en la sala' });
-    }
+    // Determinar si es entrada o salida
+    const isExit = user.activeRoomId === room.id || user.activeRoomCode === room.code;
 
-    if (room.currentOccupancy >= room.capacity) {
-      await t.rollback();
-      return res.status(409).json({ 
-        error: 'Sala llena',
-        current: room.currentOccupancy,
+    if (isExit) {
+      // ===== SALIDA (siempre permitida) =====
+      room.currentOccupancy = Math.max(0, room.currentOccupancy - 1);
+      await room.save({ transaction: t });
+
+      user.activeRoomId = null;
+      user.activeRoomCode = null;
+      await user.save({ transaction: t });
+
+      await t.commit();
+
+      console.log(`✅ [EXIT] ${user.nombre} salió de ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+
+      return res.json({ 
+        success: true,
+        action: 'EXIT',
+        message: 'Salida registrada',
+        userName: user.nombre,
+        roomName: room.name,
+        currentOccupancy: room.currentOccupancy,
+        capacity: room.capacity
+      });
+    } else {
+      // ===== ENTRADA =====
+      
+      // Verificar si el usuario ya está en otra sala
+      if (user.activeRoomId !== null || user.activeRoomCode !== null) {
+        await t.rollback();
+        return res.status(409).json({ 
+          success: false,
+          action: 'BLOCKED',
+          error: 'Usuario debe salir de otra sala primero',
+          message: 'Usuario ya está en otra sala'
+        });
+      }
+
+      // BLOQUEAR ENTRADA si la sala está llena
+      if (room.currentOccupancy >= room.capacity) {
+        await t.rollback();
+        return res.status(409).json({ 
+          success: false,
+          action: 'BLOCKED',
+          error: 'Sala llena',
+          userName: user.nombre,
+          roomName: room.name,
+          currentOccupancy: room.currentOccupancy,
+          capacity: room.capacity,
+          message: 'Room is at maximum capacity'
+        });
+      }
+
+      // Permitir entrada
+      room.currentOccupancy += 1;
+      await room.save({ transaction: t });
+
+      user.activeRoomId = room.id;
+      user.activeRoomCode = room.code;
+      await user.save({ transaction: t });
+
+      await t.commit();
+
+      console.log(`✅ [ENTER] ${user.nombre} entró a ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+
+      return res.json({ 
+        success: true,
+        action: 'ENTER',
+        message: 'Entrada registrada',
+        userName: user.nombre,
+        roomName: room.name,
+        currentOccupancy: room.currentOccupancy,
         capacity: room.capacity
       });
     }
-
-    if (user.activeRoomCode && user.activeRoomCode !== roomCode) {
-      await t.rollback();
-      return res.status(409).json({ 
-        error: 'Usuario debe salir de la otra sala primero',
-        activeRoomCode: user.activeRoomCode 
-      });
-    }
-
-    room.currentOccupancy += 1;
-    await room.save({ transaction: t });
-
-    user.activeRoomCode = roomCode;
-    await user.save({ transaction: t });
-
-    await t.commit();
-
-    console.log(`✅ [enterRoom] ${user.nombre} entró a ${roomCode} (${room.currentOccupancy}/${room.capacity})`);
-
-    res.json({ 
-      success: true, 
-      message: 'Entrada registrada',
-      userName: user.nombre,
-      roomCode: roomCode,
-      currentOccupancy: room.currentOccupancy,
-      capacity: room.capacity
-    });
   } catch (e) {
     await t.rollback();
-    console.error('[enterRoom] Error:', e.message);
-    res.status(500).json({ error: 'Error registrando entrada', details: e.message });
+    console.error('[registerRoomAccess] Error:', e.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error registrando acceso', 
+      details: e.message 
+    });
   }
 }
 
-/**
- * Registrar salida de una sala
- */
+// Mantener para compatibilidad hacia atrás si es necesario
+async function enterRoom(req, res) {
+  return registerRoomAccess(req, res);
+}
+
 async function exitRoom(req, res) {
-  const { qr, roomCode } = req.body;
-
-  if (!qr || !roomCode) {
-    return res.status(400).json({ error: 'qr y roomCode requeridos' });
-  }
-
-  const t = await sequelize.transaction();
-
-  try {
-    const user = await Users.findOne({ where: { qr }, transaction: t });
-    if (!user) {
-      await t.rollback();
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    if (user.activeRoomCode !== roomCode) {
-      await t.rollback();
-      return res.status(409).json({ 
-        error: 'Usuario no está en esa sala',
-        activeRoomCode: user.activeRoomCode 
-      });
-    }
-
-    const room = await Rooms.findOne({ where: { code: roomCode }, transaction: t });
-    if (!room) {
-      await t.rollback();
-      return res.status(404).json({ error: 'Sala no encontrada' });
-    }
-
-    room.currentOccupancy = Math.max(0, room.currentOccupancy - 1);
-    await room.save({ transaction: t });
-
-    user.activeRoomCode = null;
-    await user.save({ transaction: t });
-
-    await t.commit();
-
-    console.log(`✅ [exitRoom] ${user.nombre} salió de ${roomCode} (${room.currentOccupancy}/${room.capacity})`);
-
-    res.json({ 
-      success: true, 
-      message: 'Salida registrada',
-      userName: user.nombre,
-      roomCode: roomCode,
-      currentOccupancy: room.currentOccupancy,
-      capacity: room.capacity
-    });
-  } catch (e) {
-    await t.rollback();
-    console.error('[exitRoom] Error:', e.message);
-    res.status(500).json({ error: 'Error registrando salida', details: e.message });
-  }
+  return registerRoomAccess(req, res);
 }
 
-module.exports = { enterRoom, exitRoom };
+module.exports = { registerRoomAccess, enterRoom, exitRoom };
