@@ -1,0 +1,58 @@
+name: Deploy to Digital Ocean
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Instalar dependencias
+      run: npm install
+      
+    - name: Desplegar en Digital Ocean
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ 64.226.100.1 }}
+        username: ${{ root }}
+        key: ${{ -----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDkwO1HGU1c1SvcQT1fShyvHueVJUPwxdn6odtdgpzbxQAAAJgDFZqOAxWa
+jgAAAAtzc2gtZWQyNTUxOQAAACDkwO1HGU1c1SvcQT1fShyvHueVJUPwxdn6odtdgpzbxQ
+AAAEB00zyxYwlu+snDWO1LRMW8PoAFVGBOapDAScxXj7VOV+TA7UcZTVzVK9xBPV9KHK8e
+55UlQ/DF2fqh212CnNvFAAAAFWdheHVyQExBUFRPUC1QUjFHUVJMRA==
+-----END OPENSSH PRIVATE KEY----- }}
+        script: |
+          echo "Iniciando despliegue automático..."
+          cd ~/backend
+          
+          # Guardar cambios locales si existen
+          git stash
+          
+          # Pull del repositorio
+          git pull origin main
+          
+          # Instalar dependencias
+          npm install
+          
+          # Parar y reconstruir contenedores Docker
+          docker-compose down
+          docker-compose build --no-cache
+          docker-compose up -d
+          
+          # Limpiar recursos no utilizados
+          docker system prune -f
+          
+          echo "Despliegue completado"
+          docker-compose ps
