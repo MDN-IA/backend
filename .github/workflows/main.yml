@@ -32,6 +32,3 @@ jobs:
           echo "Iniciando contenedores..."
           chmod +x ./start-docker.sh
           ./start-docker.sh
-          
-          echo "Despliegue completado"
-          docker-compose ps
