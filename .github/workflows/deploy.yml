@@ -2,7 +2,7 @@ name: Deploy to Digital Ocean
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -24,15 +24,9 @@ jobs:
     - name: Desplegar en Digital Ocean
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ 64.226.100.1 }}
-        username: ${{ root }}
-        key: ${{ -----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-QyNTUxOQAAACDkwO1HGU1c1SvcQT1fShyvHueVJUPwxdn6odtdgpzbxQAAAJgDFZqOAxWa
-jgAAAAtzc2gtZWQyNTUxOQAAACDkwO1HGU1c1SvcQT1fShyvHueVJUPwxdn6odtdgpzbxQ
-AAAEB00zyxYwlu+snDWO1LRMW8PoAFVGBOapDAScxXj7VOV+TA7UcZTVzVK9xBPV9KHK8e
-55UlQ/DF2fqh212CnNvFAAAAFWdheHVyQExBUFRPUC1QUjFHUVJMRA==
------END OPENSSH PRIVATE KEY----- }}
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           echo "Iniciando despliegue automático..."
           cd ~/backend
