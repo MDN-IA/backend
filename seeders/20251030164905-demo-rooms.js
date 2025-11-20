@@ -4,7 +4,7 @@ module.exports = {
   async up (queryInterface) {
     await queryInterface.bulkInsert('Rooms', [
       { code: 'sala-a', name: 'Sala A', temp: null, light: null, hum: null, tempHistory: JSON.stringify([0, 0, 0, 0, 0, 0, 0]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() },
-      { code: 'sala-b', name: 'Sala B', temp: 19.5, light: 350, hum: 45.0, tempHistory: JSON.stringify([19.5, 19.3, 19.7, 19.4, 19.6, 19.2, 19.8]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() },
+      { code: 'sala-b', name: 'Sala B', temp: 19.5, light: 350, hum: 45.0, tempHistory: JSON.stringify([19.5, 19.3, 19.7, 19.4, 19.6, 19.2, 19.8]), tempIndex: 0, capacity: 30, currentOccupancy: 15, createdAt: new Date(), updatedAt: new Date() },
       { code: 'sala-c', name: 'Sala C', temp: 24.0, light: 950, hum: 60.0, tempHistory: JSON.stringify([24.0, 24.2, 23.8, 24.1, 23.9, 24.3, 23.7]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() },
       { code: 'sala-d', name: 'Sala D', temp: 21.8, light: 350, hum: 55.0, tempHistory: JSON.stringify([21.8, 21.5, 22.0, 21.7, 21.9, 21.6, 22.1]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() },
       { code: 'sala-e', name: 'Sala E', temp: 22.3, light: 350, hum: 50.0, tempHistory: JSON.stringify([22.3, 22.1, 22.5, 22.2, 22.4, 22.0, 22.6]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() },
