@@ -11,7 +11,8 @@ const {
   getQRImage,
   forgotPassword,
   verifyResetToken,
-  resetPassword
+  resetPassword,
+  getCurrentUser
 } = require('../controllers/users.controller');
 
 // Obtener todos los usuarios
@@ -49,5 +50,8 @@ router.post('/reset-password', resetPassword);
 
 // Verificar token de reset
 router.get('/verify-reset-token/:token', verifyResetToken);
+
+// Obtener usuario actual (autenticado)
+router.get('/me', getCurrentUser);
 
 module.exports = router;

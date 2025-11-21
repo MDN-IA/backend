@@ -541,6 +541,35 @@ async function resetPassword(req, res) {
   }
 }
 
+//// filepath: c:\Users\Mario\Desktop\ERASMUS-25\IOT\backend\src\controllers\users.controller.js
+async function getCurrentUser(req, res) {
+  try {
+    const userId = req.query.userId; // o de un token, según tu auth
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const user = await Users.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userResponse = user.toJSON();
+    delete userResponse.contrasena;
+
+    return res.json({
+      user: {
+        ...userResponse,
+        activeRoomCode: user.activeRoomCode || null
+      }
+    });
+  } catch (e) {
+    console.error('[getCurrentUser] Error:', e.message);
+    return res.status(500).json({ error: 'Error getting current user', details: e.message });
+  }
+}
+
 module.exports = { 
   getUsers, 
   getUserById, 
@@ -553,6 +582,7 @@ module.exports = {
   getQRImage,
   forgotPassword,
   verifyResetToken,
-  resetPassword
+  resetPassword,
+  getCurrentUser
 };
 
