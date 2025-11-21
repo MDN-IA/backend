@@ -1,64 +1,55 @@
 const { Users, Rooms, sequelize } = require('../models');
 
-const MIN_LIGHT = 900; // Umbral mínimo de luz (misma lógica que el frontend)
+const MIN_LIGHT = 900; // Minimum light threshold
 
 /**
- * Registrar acceso a una sala (entrada o salida automática)
+ * Register access to a room (automatic enter/exit)
  * Request: { userId: int, roomCode: string }
- * 
- * Casos:
- * 1. Usuario dentro de sala = SALIDA (siempre permitida)
- * 2. Usuario en otra sala = BLOQUEADO (debe salir primero)
- * 3. Sala sin luz = BLOQUEADO
- * 4. Sala llena + usuario nuevo = BLOQUEADO
- * 5. Sala con espacio + usuario nuevo = ENTRADA
+ *
+ * Cases:
+ * 1. User inside this room  -> EXIT (always allowed)
+ * 2. User in another room   -> BLOCKED (must exit first)
+ * 3. Room without light     -> BLOCKED
+ * 4. Room full + new user   -> BLOCKED
+ * 5. Room with space + user -> ENTER
  */
 async function registerRoomAccess(req, res) {
   const userId = req.body.userId;
   const roomCode = req.body.roomCode;
 
   if (!userId || !roomCode) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      error: 'userId y roomCode requeridos' 
+      error: 'userId and roomCode are required'
     });
   }
 
-  const t = await sequelize.transaction();
-
+  let t;
   try {
-    // Buscar usuario
-    const user = await Users.findOne({ 
-      where: { id: userId },
-      transaction: t 
-    });
-    
+    // Find user (no transaction needed for read)
+    const user = await Users.findOne({ where: { id: userId } });
     if (!user) {
-      await t.rollback();
-      console.error(`[registerRoomAccess] Usuario ${userId} no encontrado`);
-      return res.status(404).json({ 
+      console.error(`[registerRoomAccess] User ${userId} not found`);
+      return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado' 
+        error: 'User not found'
       });
     }
 
-    // Buscar sala por código
-    const room = await Rooms.findOne({ 
-      where: { code: roomCode },
-      transaction: t 
-    });
-    
+    // Find room by code (no transaction needed for read)
+    const room = await Rooms.findOne({ where: { code: roomCode } });
     if (!room) {
-      await t.rollback();
-      console.error(`[registerRoomAccess] Sala con código ${roomCode} no encontrada`);
-      return res.status(404).json({ 
+      console.error(`[registerRoomAccess] Room with code ${roomCode} not found`);
+      return res.status(404).json({
         success: false,
-        error: 'Sala no encontrada' 
+        error: 'Room not found'
       });
     }
 
-    // CASO 1: Usuario dentro de esta sala = SALIDA
+    // CASE 1: User already inside this room -> EXIT
     if (user.activeRoomCode === roomCode) {
+      t = await sequelize.transaction();
+
       room.currentOccupancy = Math.max(0, room.currentOccupancy - 1);
       await room.save({ transaction: t });
 
@@ -68,12 +59,12 @@ async function registerRoomAccess(req, res) {
 
       await t.commit();
 
-      console.log(`✅ [EXIT] ${user.nombre} salió de ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+      console.log(`✅ [EXIT] ${user.nombre} left ${room.name} (${room.currentOccupancy}/${room.capacity})`);
 
-      return res.json({ 
+      return res.json({
         success: true,
         action: 'EXIT',
-        message: 'Salida registrada',
+        message: 'Exit registered',
         userName: user.nombre,
         roomName: room.name,
         currentOccupancy: room.currentOccupancy,
@@ -81,20 +72,16 @@ async function registerRoomAccess(req, res) {
       });
     }
 
-    // CASO 2: Usuario en otra sala = BLOQUEADO
+    // CASE 2: User in another room -> BLOCKED
     if (user.activeRoomCode !== null) {
-      await t.rollback();
-      const otherRoom = await Rooms.findOne({ 
-        where: { code: user.activeRoomCode },
-        transaction: t 
-      });
-      
-      console.log(`❌ [BLOCKED] ${user.nombre} está en ${otherRoom?.name}, intenta entrar a ${room.name}`);
+      const otherRoom = await Rooms.findOne({ where: { code: user.activeRoomCode } });
 
-      return res.status(409).json({ 
+      console.log(`❌ [BLOCKED] ${user.nombre} is in ${otherRoom?.name}, trying to enter ${room.name}`);
+
+      return res.status(409).json({
         success: false,
         action: 'BLOCKED',
-        message: `Ya estás en ${otherRoom?.name}. Debes salir primero.`,
+        message: `You are already in ${otherRoom?.name}. Please exit first.`,
         userName: user.nombre,
         roomName: otherRoom?.name || 'Unknown',
         currentOccupancy: otherRoom?.currentOccupancy || 0,
@@ -102,16 +89,14 @@ async function registerRoomAccess(req, res) {
       });
     }
 
-    // CASO 3: Sala sin luz = BLOQUEADO (light >= 900 o null)
+    // CASE 3: Room without enough light -> BLOCKED
     if (room.light === null || room.light >= MIN_LIGHT) {
-      await t.rollback();
-      
-      console.log(`❌ [NO_LIGHT] ${user.nombre} intenta entrar a ${room.name} pero no hay suficiente luz (${room.light})`);
+      console.log(`❌ [NO_LIGHT] ${user.nombre} tries to enter ${room.name} but there is not enough light (${room.light})`);
 
-      return res.status(409).json({ 
+      return res.status(409).json({
         success: false,
         action: 'NO_LIGHT',
-        message: 'No hay suficiente luz en la sala',
+        message: 'There is not enough light in the room',
         userName: user.nombre,
         roomName: room.name,
         currentOccupancy: room.currentOccupancy,
@@ -120,16 +105,14 @@ async function registerRoomAccess(req, res) {
       });
     }
 
-    // CASO 4: Sala llena + usuario nuevo = BLOQUEADO
+    // CASE 4: Room full + new user -> BLOCKED
     if (room.currentOccupancy >= room.capacity) {
-      await t.rollback();
-      
-      console.log(`❌ [BLOCKED] ${user.nombre} intenta entrar a ${room.name} pero está llena (${room.currentOccupancy}/${room.capacity})`);
+      console.log(`❌ [BLOCKED] ${user.nombre} tries to enter ${room.name} but it is full (${room.currentOccupancy}/${room.capacity})`);
 
-      return res.status(409).json({ 
+      return res.status(409).json({
         success: false,
         action: 'BLOCKED',
-        message: 'No hay espacio disponible en la sala',
+        message: 'The room is full',
         userName: user.nombre,
         roomName: room.name,
         currentOccupancy: room.currentOccupancy,
@@ -137,7 +120,9 @@ async function registerRoomAccess(req, res) {
       });
     }
 
-    // CASO 5: Sala con espacio + usuario nuevo = ENTRADA
+    // CASE 5: Room has space + user not inside any room -> ENTER
+    t = await sequelize.transaction();
+
     room.currentOccupancy += 1;
     await room.save({ transaction: t });
 
@@ -147,12 +132,12 @@ async function registerRoomAccess(req, res) {
 
     await t.commit();
 
-    console.log(`✅ [ENTER] ${user.nombre} entró a ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+    console.log(`✅ [ENTER] ${user.nombre} entered ${room.name} (${room.currentOccupancy}/${room.capacity})`);
 
-    return res.json({ 
+    return res.json({
       success: true,
       action: 'ENTER',
-      message: 'Entrada registrada',
+      message: 'Entry registered',
       userName: user.nombre,
       roomName: room.name,
       currentOccupancy: room.currentOccupancy,
@@ -160,12 +145,14 @@ async function registerRoomAccess(req, res) {
     });
 
   } catch (e) {
-    await t.rollback();
+    if (t) {
+      try { await t.rollback(); } catch {}
+    }
     console.error('[registerRoomAccess] Error:', e.message);
-    res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: 'Error registrando acceso', 
-      details: e.message 
+      error: 'Error registering access',
+      details: e.message
     });
   }
 }
