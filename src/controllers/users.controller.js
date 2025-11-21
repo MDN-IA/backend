@@ -338,8 +338,11 @@ async function loginUser(req, res) {
     delete userResponse.contrasena;
 
     res.json({
-      message: 'Login exitoso',
-      user: userResponse
+      message: 'Login successful',
+      user: {
+        ...userResponse,
+        activeRoomCode: user.activeRoomCode || null
+      }
     });
   } catch (e) {
     console.error('[loginUser] Error en login:');
