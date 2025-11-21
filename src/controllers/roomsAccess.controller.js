@@ -1,5 +1,7 @@
 const { Users, Rooms, sequelize } = require('../models');
 
+const MIN_LIGHT = 900; // Umbral mínimo de luz (misma lógica que el frontend)
+
 /**
  * Registrar acceso a una sala (entrada o salida automática)
  * Request: { userId: int, roomCode: string }
@@ -7,8 +9,9 @@ const { Users, Rooms, sequelize } = require('../models');
  * Casos:
  * 1. Usuario dentro de sala = SALIDA (siempre permitida)
  * 2. Usuario en otra sala = BLOQUEADO (debe salir primero)
- * 3. Sala llena + usuario nuevo = BLOQUEADO
- * 4. Sala con espacio + usuario nuevo = ENTRADA
+ * 3. Sala sin luz = BLOQUEADO
+ * 4. Sala llena + usuario nuevo = BLOQUEADO
+ * 5. Sala con espacio + usuario nuevo = ENTRADA
  */
 async function registerRoomAccess(req, res) {
   const userId = req.body.userId;
@@ -99,7 +102,25 @@ async function registerRoomAccess(req, res) {
       });
     }
 
-    // CASO 3: Sala llena + usuario nuevo = BLOQUEADO
+    // CASO 3: Sala sin luz = BLOQUEADO (light >= 900 o null)
+    if (room.light === null || room.light >= MIN_LIGHT) {
+      await t.rollback();
+      
+      console.log(`❌ [NO_LIGHT] ${user.nombre} intenta entrar a ${room.name} pero no hay suficiente luz (${room.light})`);
+
+      return res.status(409).json({ 
+        success: false,
+        action: 'NO_LIGHT',
+        message: 'No hay suficiente luz en la sala',
+        userName: user.nombre,
+        roomName: room.name,
+        currentOccupancy: room.currentOccupancy,
+        capacity: room.capacity,
+        light: room.light
+      });
+    }
+
+    // CASO 4: Sala llena + usuario nuevo = BLOQUEADO
     if (room.currentOccupancy >= room.capacity) {
       await t.rollback();
       
@@ -116,7 +137,7 @@ async function registerRoomAccess(req, res) {
       });
     }
 
-    // CASO 4: Sala con espacio + usuario nuevo = ENTRADA
+    // CASO 5: Sala con espacio + usuario nuevo = ENTRADA
     room.currentOccupancy += 1;
     await room.save({ transaction: t });
 
