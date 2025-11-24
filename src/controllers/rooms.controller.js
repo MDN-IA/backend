@@ -25,16 +25,19 @@ async function getRoomById(req, res) {
         error: 'Sala no encontrada',
         id: parseInt(id)
       });
-    }
-
-    const availableSpaces = room.capacity - room.currentOccupancy;
+    }    const availableSpaces = room.capacity - room.currentOccupancy;
 
     console.log(`[getRoomById] Sala encontrada: ${room.name} - Ocupación: ${room.currentOccupancy}/${room.capacity}`);
+    console.log(`[getRoomById] Datos ambientales: Temp=${room.temp}, Light=${room.light}, Hum=${room.hum}`);
     
-    res.json({
+    const response = {
       ...room.toJSON(),
       availableSpaces: Math.max(0, availableSpaces)
-    });
+    };
+    
+    console.log(`[getRoomById] Respuesta completa:`, response);
+    
+    res.json(response);
   } catch (e) {
     console.error('[getRoomById] Error:', e.message);
     res.status(500).json({ error: 'Error obteniendo sala', details: e.message });

@@ -11,6 +11,13 @@ async function registerSample(req, res) {
     const { roomCode } = req.params;
     const { temp, light, hum, name } = req.body;
 
+    console.log(`[registerSample] Datos recibidos para ${roomCode}:`, {
+      temp: temp,
+      light: light, 
+      hum: hum,
+      name: name
+    });
+
     const [room, created] = await Room.findOrCreate({
       where: { code: roomCode },
       defaults: { 
@@ -26,6 +33,12 @@ async function registerSample(req, res) {
     room.hum = hum;
     
     await room.save();
+
+    console.log(`[registerSample] Datos guardados en BD para ${roomCode}:`, {
+      temp: room.temp,
+      light: room.light, 
+      hum: room.hum
+    });
 
     // GUARDAR LA PRIMERA TEMPERATURA INMEDIATAMENTE
     if (!firstTempSaved.has(roomCode)) {
