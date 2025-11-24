@@ -21,6 +21,10 @@ router.get('/', getUsers);
 // Login de usuario
 router.post('/login', loginUser);
 
+// ⚠️ IMPORTANTE: Rutas específicas ANTES de /:id
+// Obtener usuario actual (autenticado) - DEBE IR ANTES DE /:id
+router.get('/me', getCurrentUser);
+
 // Obtener usuario por correo
 router.get('/email/:correo', getUserByEmail);
 
@@ -29,18 +33,6 @@ router.get('/qr-image/:id', getQRImage);
 
 // Obtener usuario por QR
 router.get('/qr/:qr', getUserByQR);
-
-// Crear nuevo usuario
-router.post('/', createUser);
-
-// Obtener usuario por ID (debe ir después de las rutas específicas)
-router.get('/:id', getUserById);
-
-// Actualizar usuario
-router.put('/:id', updateUser);
-
-// Eliminar usuario
-router.delete('/:id', deleteUser);
 
 // Solicitar reset de contraseña
 router.post('/forgot-password', forgotPassword);
@@ -51,7 +43,18 @@ router.post('/reset-password', resetPassword);
 // Verificar token de reset
 router.get('/verify-reset-token/:token', verifyResetToken);
 
-// Obtener usuario actual (autenticado)
-router.get('/me', getCurrentUser);
+// Crear nuevo usuario
+router.post('/', createUser);
+
+// ⚠️ Estas rutas con /:id deben ir AL FINAL
+// Obtener usuario por ID (debe ir después de las rutas específicas)
+router.get('/:id', getUserById);
+
+// Actualizar usuario
+router.put('/:id', updateUser);
+
+// Eliminar usuario
+router.delete('/:id', deleteUser);
+
 
 module.exports = router;

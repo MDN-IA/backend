@@ -541,24 +541,40 @@ async function resetPassword(req, res) {
   }
 }
 
-//// filepath: c:\Users\Mario\Desktop\ERASMUS-25\IOT\backend\src\controllers\users.controller.js
+/**
+ * Obtener el usuario actual (autenticado)
+ * Espera userId como query parameter: GET /api/users/me?userId=123
+ */
 async function getCurrentUser(req, res) {
   try {
-    const userId = req.query.userId; // o de un token, según tu auth
+    // Intentar obtener userId de query params o body
+    const userId = req.query.userId || req.body.userId;
+
+    console.log(`[getCurrentUser] Obteniendo usuario actual con ID: ${userId}`);
 
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      console.log('[getCurrentUser] userId no proporcionado');
+      return res.status(400).json({
+        error: 'userId is required',
+        hint: 'Use: GET /api/users/me?userId=YOUR_USER_ID'
+      });
     }
 
-    const user = await Users.findByPk(userId);
+    const user = await Users.findByPk(userId, {
+      attributes: { exclude: ['contrasena', 'resetToken'] } // No enviar datos sensibles
+    });
+
     if (!user) {
+      console.log(`[getCurrentUser] Usuario con ID ${userId} no encontrado`);
       return res.status(404).json({ error: 'User not found' });
     }
 
+    console.log(`[getCurrentUser] Usuario encontrado: ${user.nombre} - Sala activa: ${user.activeRoomCode || 'ninguna'}`);
+
     const userResponse = user.toJSON();
-    delete userResponse.contrasena;
 
     return res.json({
+      success: true,
       user: {
         ...userResponse,
         activeRoomCode: user.activeRoomCode || null
@@ -566,7 +582,11 @@ async function getCurrentUser(req, res) {
     });
   } catch (e) {
     console.error('[getCurrentUser] Error:', e.message);
-    return res.status(500).json({ error: 'Error getting current user', details: e.message });
+    console.error('Stack:', e.stack);
+    return res.status(500).json({
+      error: 'Error getting current user',
+      details: e.message
+    });
   }
 }
 

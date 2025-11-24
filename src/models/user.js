@@ -4,9 +4,11 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Users extends Model {
     static associate(models) {
-      // Define associations here if needed
-      // Por ejemplo, si un usuario tiene muchas habitaciones favoritas
-      // Users.belongsToMany(models.Rooms, { through: 'UserRooms' });
+      // Relación con historial de accesos
+      Users.hasMany(models.RoomAccessHistory, {
+        foreignKey: 'userId',
+        as: 'accessHistory'
+      });
     }
   }
 

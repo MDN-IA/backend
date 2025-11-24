@@ -6,6 +6,7 @@ const samplesRoutes = require('./routes/samples.routes');
 const recoRoutes = require('./routes/reco.routes');
 const usersRoutes = require('./routes/users.routes');
 const accessRoutes = require('./routes/roomsAccess.routes');
+const historyRoutes = require('./routes/history.routes');
 
 console.log('✓ Rutas cargadas correctamente');
 
@@ -30,7 +31,10 @@ app.get('/api', (req, res) => {
       userByEmail: '/api/users/email/:correo',
       userByQR: '/api/users/qr/:qr',
       qrImage: '/api/users/qr-image/:id',
-      login: '/api/users/login'
+      login: '/api/users/login',
+      access: '/api/access',
+      history: '/api/history/:userId',
+      stats: '/api/history/:userId/stats'
     }
   });
 });
@@ -41,6 +45,7 @@ app.use('/api/samples', samplesRoutes);
 app.use('/api/recommendations', recoRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/access', accessRoutes);
-console.log('✓ Rutas registradas: /api/rooms, /api/samples, /api/recommendations, /api/users, /api/access');
+app.use('/api/history', historyRoutes);
+console.log('✓ Rutas registradas: /api/rooms, /api/samples, /api/recommendations, /api/users, /api/access, /api/history');
 
 module.exports = app;
