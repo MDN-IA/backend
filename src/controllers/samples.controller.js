@@ -42,12 +42,12 @@ async function registerSample(req, res) {
 
       await room.save();
       firstTempSaved.set(roomCode, true);
-      console.log(` Primera temperatura guardada en posición 0: ${temp}`);
+      console.log(` First temperature saved in position 0: ${temp}`);
     }
 
     // INICIAR TIMER DE ACTUALIZACIÓN DEL ARRAY (cada 30 segundos)
     if (!tempHistoryTimers.has(roomCode)) {
-      console.log(` Iniciando timer de 30 segundos para ${roomCode}`);
+      console.log(` Starting 30 seconds timer for ${roomCode}`);
       
       const timer = setInterval(async () => {
         try {
@@ -67,7 +67,7 @@ async function registerSample(req, res) {
 
           // Guardar la temperatura actual en la posición actual
           updatedRoom.tempHistory[updatedRoom.tempIndex] = updatedRoom.temp || 0;
-          console.log(` Temperatura ${updatedRoom.temp} guardada en posición ${updatedRoom.tempIndex}`);
+          console.log(` Temperature ${updatedRoom.temp} saved in position ${updatedRoom.tempIndex}`);
 
           // Avanzar el índice para la próxima
           updatedRoom.tempIndex = (updatedRoom.tempIndex + 1) % 7;
@@ -77,9 +77,9 @@ async function registerSample(req, res) {
           updatedRoom.changed('tempIndex', true);
 
           await updatedRoom.save();
-          console.log(` Array para ${roomCode}:`, updatedRoom.tempHistory, `| Próxima posición: ${updatedRoom.tempIndex}`);
+          console.log(` Array for ${roomCode}:`, updatedRoom.tempHistory, `| Next position: ${updatedRoom.tempIndex}`);
         } catch (e) {
-          console.error(`Error actualizando array para ${roomCode}:`, e.message);
+          console.error(`Error updating array for ${roomCode}:`, e.message);
         }
       }, 30000); // Cada 30 segundos
 
@@ -89,14 +89,14 @@ async function registerSample(req, res) {
     res.json({ 
       success: true, 
       created, 
-      message: 'Temperatura actualizada',
+      message: 'Temperature updated',
       temp: room.temp,
       tempHistory: room.tempHistory,
       tempIndex: room.tempIndex
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Error registrando muestra', details: e.message });
+    res.status(500).json({ error: 'Error registering proof', details: e.message });
   }
 }
 

@@ -19,7 +19,7 @@ module.exports = {
       { code: 'sala-n', name: 'Sala N', temp: 24.5, light: 350, hum: 60.0, tempHistory: JSON.stringify([24.5, 24.3, 24.7, 24.4, 24.6, 24.2, 24.8]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() },
       { code: 'sala-o', name: 'Sala O', temp: 21.0, light: 350, hum: 55.0, tempHistory: JSON.stringify([21.0, 20.8, 21.2, 20.9, 21.1, 20.7, 21.3]), tempIndex: 0, capacity: 30, currentOccupancy: 0, createdAt: new Date(), updatedAt: new Date() }
     ], {});
-    console.log('✓ Salas de demostración insertadas correctamente');
+    console.log('Demostration rooms have been seeded.');
   },
 
   async down (queryInterface) {

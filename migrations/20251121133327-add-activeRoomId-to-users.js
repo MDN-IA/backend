@@ -20,17 +20,17 @@ module.exports = {
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
-      comment: 'ID de la sala en la que el usuario está actualmente'
+      comment: 'Room id where the user is currently active'
     });
 
-    console.log('✅ Columna activeRoomId agregada a Users');
+    console.log('Column activeRoomId added to Users');
   },
 
   async down(queryInterface, Sequelize) {
     // Eliminar columna activeRoomId
     await queryInterface.removeColumn('Users', 'activeRoomId');
 
-    console.log('✅ Columna activeRoomId eliminada de Users');
+    console.log('Column activeRoomId deleted from Users');
   }
 };
 

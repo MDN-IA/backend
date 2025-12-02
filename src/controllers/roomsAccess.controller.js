@@ -59,7 +59,7 @@ async function registerRoomAccess(req, res) {
 
       await t.commit();
 
-      console.log(`✅ [EXIT] ${user.nombre} left ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+      console.log(`[EXIT] ${user.nombre} left ${room.name} (${room.currentOccupancy}/${room.capacity})`);
 
       return res.json({
         success: true,
@@ -76,7 +76,7 @@ async function registerRoomAccess(req, res) {
     if (user.activeRoomCode !== null) {
       const otherRoom = await Rooms.findOne({ where: { code: user.activeRoomCode } });
 
-      console.log(`❌ [BLOCKED] ${user.nombre} is in ${otherRoom?.name}, trying to enter ${room.name}`);
+      console.log(`[BLOCKED] ${user.nombre} is in ${otherRoom?.name}, trying to enter ${room.name}`);
 
       return res.status(409).json({
         success: false,
@@ -91,7 +91,7 @@ async function registerRoomAccess(req, res) {
 
     // CASE 3: Room without enough light -> BLOCKED
     if (room.light === null || room.light >= MIN_LIGHT) {
-      console.log(`❌ [NO_LIGHT] ${user.nombre} tries to enter ${room.name} but there is not enough light (${room.light})`);
+      console.log(`[NO_LIGHT] ${user.nombre} tries to enter ${room.name} but there is not enough light (${room.light})`);
 
       return res.status(409).json({
         success: false,
@@ -107,7 +107,7 @@ async function registerRoomAccess(req, res) {
 
     // CASE 4: Room full + new user -> BLOCKED
     if (room.currentOccupancy >= room.capacity) {
-      console.log(`❌ [BLOCKED] ${user.nombre} tries to enter ${room.name} but it is full (${room.currentOccupancy}/${room.capacity})`);
+      console.log(`[BLOCKED] ${user.nombre} tries to enter ${room.name} but it is full (${room.currentOccupancy}/${room.capacity})`);
 
       return res.status(409).json({
         success: false,
@@ -132,7 +132,7 @@ async function registerRoomAccess(req, res) {
 
     await t.commit();
 
-    console.log(`✅ [ENTER] ${user.nombre} entered ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+    console.log(`[ENTER] ${user.nombre} entered ${room.name} (${room.currentOccupancy}/${room.capacity})`);
 
     return res.json({
       success: true,

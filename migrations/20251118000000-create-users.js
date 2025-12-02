@@ -41,17 +41,17 @@ module.exports = {
       activeRoomCode: {
         type: Sequelize.STRING,
         allowNull: true,
-        comment: 'Código de la sala en la que el usuario está actualmente activo'
+        comment: 'Code from the room the user is currently active in'
       },
       resetToken: {
         type: Sequelize.STRING,
         allowNull: true,
-        comment: 'Token para restablecer la contraseña'
+        comment: 'Token used for password reset'
       },
       resetTokenExpiration: {
         type: Sequelize.DATE,
         allowNull: true,
-        comment: 'Fecha de expiración del token para restablecer la contraseña'
+        comment: 'Expiration time for the password reset token'
       },
       createdAt: {
         allowNull: false,

@@ -85,7 +85,7 @@ module.exports = {
       }
     ], {});
 
-    console.log('✓ Usuarios de demostración insertados correctamente');
+    console.log('Demostration users seeded with the following QR codes:');
     console.log(`QR de Juan Pérez (Admin): ${qr1}`);
     console.log(`QR de María García: ${qr2}`);
     console.log(`QR de Carlos López: ${qr3}`);

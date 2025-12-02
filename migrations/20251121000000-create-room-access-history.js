@@ -39,28 +39,28 @@ module.exports = {
       roomCode: {
         type: Sequelize.STRING,
         allowNull: false,
-        comment: 'Código de la sala para búsquedas rápidas'
+        comment: 'Code from the rooom accessed'
       },
       action: {
         type: Sequelize.ENUM('ENTER', 'EXIT'),
         allowNull: false,
-        comment: 'Tipo de acción: entrada o salida'
+        comment: 'Type of access action: enter or exit'
       },
       timestamp: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.NOW,
-        comment: 'Momento exacto del acceso'
+        comment: 'Exact time of the access event'
       },
       duration: {
         type: Sequelize.INTEGER,
         allowNull: true,
-        comment: 'Duración de la visita en minutos (se calcula al salir)'
+        comment: 'Visit duration in minutes (only for EXIT actions)'
       },
       satisfaction: {
         type: Sequelize.INTEGER,
         allowNull: true,
-        comment: 'Rating de satisfacción del usuario (1-5)',
+        comment: 'Rating of user satisfaction after the visit (1-5)',
         validate: {
           min: 1,
           max: 5
@@ -69,17 +69,17 @@ module.exports = {
       roomTemperature: {
         type: Sequelize.FLOAT,
         allowNull: true,
-        comment: 'Temperatura de la sala al momento del acceso'
+        comment: 'Room temperature at the time of access'
       },
       roomLight: {
         type: Sequelize.FLOAT,
         allowNull: true,
-        comment: 'Nivel de luz al momento del acceso'
+        comment: 'Light level at the time of access'
       },
       roomHumidity: {
         type: Sequelize.FLOAT,
         allowNull: true,
-        comment: 'Humedad al momento del acceso'
+        comment: 'Humidity level at the time of access'
       },
       createdAt: {
         allowNull: false,
@@ -110,7 +110,7 @@ module.exports = {
       name: 'idx_room_access_user_room'
     });
 
-    console.log('✅ Tabla RoomAccessHistory creada con índices optimizados para ML');
+    console.log('Table RoomAccessHistory created with indices for ML module');
   },
 
   async down(queryInterface, Sequelize) {
@@ -123,7 +123,7 @@ module.exports = {
     // Eliminar tabla
     await queryInterface.dropTable('RoomAccessHistory');
 
-    console.log('✅ Tabla RoomAccessHistory eliminada');
+    console.log('Table RoomAccessHistory deleted');
   }
 };
 

@@ -10,7 +10,7 @@ const crypto = require('crypto');
  */
 async function getUsers(req, res) {
   try {
-    console.log('[getUsers] Obteniendo todos los usuarios...');
+    console.log('[getUsers] Retrieving all the users...');
     const users = await Users.findAll({
       attributes: { exclude: ['contrasena'] }, // No enviar contraseñas
       order: [['id', 'ASC']]

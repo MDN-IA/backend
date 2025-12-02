@@ -9,7 +9,7 @@ async function getUserHistory(req, res) {
     const { userId } = req.params;
     const limit = parseInt(req.query.limit) || 50;
 
-    console.log(`[HISTORY] Obteniendo historial del usuario ${userId}`);
+    console.log(`[HISTORY] Retrieving user historical from ${userId}`);
 
     const history = await RoomAccessHistory.findAll({
       where: { userId },
@@ -24,7 +24,7 @@ async function getUserHistory(req, res) {
       limit
     });
 
-    console.log(`[HISTORY] Se encontraron ${history.length} registros`);
+    console.log(`[HISTORY] Have been found ${history.length} registers`);
 
     res.json({
       success: true,
@@ -57,13 +57,13 @@ async function getUserHistory(req, res) {
         success: true,
         count: 0,
         history: [],
-        message: 'Tabla de historial no existe. Ejecuta las migraciones.'
+        message: 'Table historical does not exist. Execute the migrations.'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: 'Error obteniendo historial',
+      error: 'Error retrieving historical',
       details: error.message
     });
   }
@@ -77,7 +77,7 @@ async function getUserStats(req, res) {
   try {
     const { userId } = req.params;
 
-    console.log(`[STATS] Calculando estadísticas del usuario ${userId}`);
+    console.log(`[STATS] Calculating stats from user ${userId}`);
 
     // Salas más visitadas
     const [mostVisited] = await sequelize.query(`
@@ -148,13 +148,13 @@ async function getUserStats(req, res) {
           mostVisitedRooms: [],
           preferredHour: null
         },
-        message: 'Tabla de historial no existe. Ejecuta las migraciones.'
+        message: 'Historical table does not exist. Execute the migrations.'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: 'Error calculando estadísticas',
+      error: 'Error calculating stats',
       details: error.message
     });
   }
