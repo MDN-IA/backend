@@ -8,7 +8,7 @@ const usersRoutes = require('./routes/users.routes');
 const accessRoutes = require('./routes/roomsAccess.routes');
 const historyRoutes = require('./routes/history.routes');
 
-console.log('✓ Rutas cargadas correctamente');
+console.log('Routes loaded successfully');
 
 const app = express();
 app.use(cors());
@@ -16,9 +16,9 @@ app.use(express.json());
 
 // Ruta de prueba para verificar que el servidor está funcionando
 app.get('/api', (req, res) => {
-  console.log(' Petición a /api recibida correctamente');
+  console.log(' Request to /api received successfully');
   res.json({
-    message: 'API funcionando correctamente',
+    message: 'API working correctly',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     endpoints: {
@@ -39,13 +39,13 @@ app.get('/api', (req, res) => {
   });
 });
 
-console.log('Registrando rutas...');
+console.log('Registering routes...');
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/samples', samplesRoutes);
 app.use('/api/recommendations', recoRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/access', accessRoutes);
 app.use('/api/history', historyRoutes);
-console.log('✓ Rutas registradas: /api/rooms, /api/samples, /api/recommendations, /api/users, /api/access, /api/history');
+console.log('Routes registered: /api/rooms, /api/samples, /api/recommendations, /api/users, /api/access, /api/history');
 
 module.exports = app;

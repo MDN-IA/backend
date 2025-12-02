@@ -65,7 +65,7 @@ module.exports = {
       }
     });
 
-    // Añadir índices para mejorar el rendimiento
+    // Add indexes to improve performance
     await queryInterface.addIndex('Users', ['correo'], {
       name: 'users_correo_index',
       unique: true

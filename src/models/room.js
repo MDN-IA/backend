@@ -48,13 +48,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 30,
-      comment: 'Capacidad máxima de personas en la sala'
+      comment: 'Maximum capacity of people in the room'
     },
     currentOccupancy: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
-      comment: 'Número actual de personas en la sala'
+      comment: 'Actual number of people in the room'
     }
   }, {
     sequelize,

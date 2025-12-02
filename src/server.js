@@ -5,9 +5,9 @@ const { sequelize } = require('./models'); // generado por sequelize-cli
 const PORT = process.env.PORT || 4000;
 
 console.log('========================================');
-console.log(' Iniciando servidor...');
+console.log(' Starting server...');
 console.log('========================================');
-console.log(' Variables de entorno:');
+console.log(' Environment variables:');
 console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
 console.log(`   PORT: ${PORT}`);
 console.log(`   DB_HOST: ${process.env.DB_HOST || 'db'}`);
@@ -19,15 +19,15 @@ console.log('========================================');
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log(' Conectado a PostgreSQL');
-    app.listen(PORT, () => console.log(` API lista en http://localhost:${PORT}`));
+    console.log(' Connected to PostgreSQL');
+    app.listen(PORT, () => console.log(` API ready at http://localhost:${PORT}`));
   } catch (e) {
     console.error('========================================');
-    console.error(' ERROR AL INICIAR EL SERVIDOR');
+    console.error(' ERROR STARTING SERVER');
     console.error('========================================');
-    console.error('Tipo de error:', e.name);
-    console.error('Mensaje:', e.message);
-    console.error('Stack completo:', e.stack);
+    console.error('Error type:', e.name);
+    console.error('Message:', e.message);
+    console.error('Full stack:', e.stack);
     console.error('========================================');
     process.exit(1);
   }

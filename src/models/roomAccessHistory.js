@@ -38,28 +38,28 @@ module.exports = (sequelize, DataTypes) => {
     roomCode: {
       type: DataTypes.STRING,
       allowNull: false,
-      comment: 'Código de la sala para búsquedas rápidas'
+      comment: 'Code of the room for quick searches'
     },
     action: {
       type: DataTypes.ENUM('ENTER', 'EXIT'),
       allowNull: false,
-      comment: 'Tipo de acción: entrada o salida'
+      comment: 'Action type: entry or exit'
     },
     timestamp: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
-      comment: 'Momento exacto del acceso'
+      comment: 'Exact moment of access'
     },
     duration: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: 'Duración de la visita en minutos (se calcula al salir)'
+      comment: 'Duration of the visit in minutes (calculated upon exit)'
     },
     satisfaction: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: 'Rating de satisfacción del usuario (1-5)',
+      comment: 'User satisfaction rating (1-5)',
       validate: {
         min: 1,
         max: 5
@@ -68,17 +68,17 @@ module.exports = (sequelize, DataTypes) => {
     roomTemperature: {
       type: DataTypes.FLOAT,
       allowNull: true,
-      comment: 'Temperatura de la sala al momento del acceso'
+      comment: 'Room temperature at the time of access'
     },
     roomLight: {
       type: DataTypes.FLOAT,
       allowNull: true,
-      comment: 'Nivel de luz al momento del acceso'
+      comment: 'Light level at the time of access'
     },
     roomHumidity: {
       type: DataTypes.FLOAT,
       allowNull: true,
-      comment: 'Humedad al momento del acceso'
+      comment: 'Room humidity at the time of access'
     }
   }, {
     sequelize,

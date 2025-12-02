@@ -18,11 +18,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notEmpty: {
-          msg: 'El nombre no puede estar vacío'
+          msg: 'The name cannot be empty'
         },
         len: {
           args: [2, 100],
-          msg: 'El nombre debe tener entre 2 y 100 caracteres'
+          msg: 'The name must be between 2 and 100 characters long'
         }
       }
     },
@@ -30,14 +30,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       unique: {
-        msg: 'Este correo ya está registrado'
+        msg: 'This email is already registered'
       },
       validate: {
         isEmail: {
-          msg: 'Debe proporcionar un correo válido'
+          msg: 'A valid email must be provided'
         },
         notEmpty: {
-          msg: 'El correo no puede estar vacío'
+          msg: 'The email cannot be empty'
         }
       }
     },
@@ -46,11 +46,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notEmpty: {
-          msg: 'La contraseña no puede estar vacía'
+          msg: 'The password cannot be empty'
         },
         len: {
           args: [6, 255],
-          msg: 'La contraseña debe tener al menos 6 caracteres'
+          msg: 'The password must be at least 6 characters long'
         }
       }
     },
@@ -58,7 +58,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
       unique: true,
-      comment: 'Código QR único del usuario'
+      comment: 'Unique QR code of the user'
     },
     preferenciaTemperatura: {
       type: DataTypes.STRING,
@@ -67,32 +67,32 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isIn: {
           args: [['COLD', 'WARM', 'HOT']],
-          msg: 'La preferencia de temperatura debe ser COLD, WARM o HOT'
+          msg: 'The temperature preference must be COLD, WARM, or HOT'
         }
       },
-      comment: 'Preferencia de temperatura del usuario: COLD (frío), WARM (templado), HOT (caliente)'
+      comment: 'User temperature preference: COLD (cold), WARM (warm), HOT (hot)'
     },
     esAdmin: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
-      comment: 'Indica si el usuario tiene permisos de administrador'
+      comment: 'Indicates whether the user has admin permissions'
     },
     activeRoomCode: {
       type: DataTypes.STRING,
       allowNull: true,
       defaultValue: null,
-      comment: 'Sala en la que el usuario está actualmente'
+      comment: 'Room the user is currently in'
     },
     resetToken: {
       type: DataTypes.STRING,
       allowNull: true,
-      comment: 'Token para restablecer la contraseña'
+      comment: 'Token to reset the password'
     },
     resetTokenExpiration: {
       type: DataTypes.DATE,
       allowNull: true,
-      comment: 'Fecha de expiración del token para restablecer la contraseña'
+      comment: 'Expiration date of the password reset token'
     }
   }, {
     sequelize,

@@ -15,13 +15,13 @@ async function getUsers(req, res) {
       attributes: { exclude: ['contrasena'] }, // No enviar contraseñas
       order: [['id', 'ASC']]
     });
-    console.log(`[getUsers] Se encontraron ${users.length} usuarios`);
+    console.log(`[getUsers] Found ${users.length} users`);
     res.json(users);
   } catch (e) {
-    console.error('[getUsers] Error obteniendo usuarios:');
-    console.error('Mensaje:', e.message);
+    console.error('[getUsers] Error retrieving users:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
-    res.status(500).json({ error: 'Error obteniendo usuarios', details: e.message });
+    res.status(500).json({ error: 'Error getting users', details: e.message });
   }
 }
 
@@ -31,27 +31,27 @@ async function getUsers(req, res) {
 async function getUserById(req, res) {
   try {
     const { id } = req.params;
-    console.log(`[getUserById] Buscando usuario con ID: ${id}`);
+    console.log(`[getUserById] Looking for user with ID: ${id}`);
 
     const user = await Users.findByPk(id, {
       attributes: { exclude: ['contrasena'] } // No enviar contraseña
     });
 
     if (!user) {
-      console.log(`[getUserById] Usuario con ID ${id} no encontrado`);
+      console.log(`[getUserById] User with ID ${id} not found`);
       return res.status(404).json({
-        error: 'Usuario no encontrado',
+        error: 'User not found',
         id: parseInt(id)
       });
     }
 
-    console.log(`[getUserById] Usuario encontrado: ${user.nombre} (${user.correo})`);
+    console.log(`[getUserById] User found: ${user.nombre} (${user.correo})`);
     res.json(user);
   } catch (e) {
-    console.error('[getUserById] Error obteniendo usuario:');
-    console.error('Mensaje:', e.message);
+    console.error('[getUserById] Error retrieving user:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
-    res.status(500).json({ error: 'Error obteniendo usuario', details: e.message });
+    res.status(500).json({ error: 'Error getting user', details: e.message });
   }
 }
 
@@ -61,7 +61,7 @@ async function getUserById(req, res) {
 async function getUserByEmail(req, res) {
   try {
     const { correo } = req.params;
-    console.log(`[getUserByEmail] Buscando usuario con correo: ${correo}`);
+    console.log(`[getUserByEmail] Searching for user with email: ${correo}`);
 
     const user = await Users.findOne({
       where: { correo },
@@ -69,20 +69,20 @@ async function getUserByEmail(req, res) {
     });
 
     if (!user) {
-      console.log(`[getUserByEmail] Usuario con correo ${correo} no encontrado`);
+      console.log(`[getUserByEmail] User with email ${correo} not found`);
       return res.status(404).json({
-        error: 'Usuario no encontrado',
+        error: 'User not found',
         correo
       });
     }
 
-    console.log(`[getUserByEmail] Usuario encontrado: ${user.nombre}`);
+    console.log(`[getUserByEmail] User found: ${user.nombre}`);
     res.json(user);
   } catch (e) {
-    console.error('[getUserByEmail] Error obteniendo usuario:');
-    console.error('Mensaje:', e.message);
+    console.error('[getUserByEmail] Error retrieving user:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
-    res.status(500).json({ error: 'Error obteniendo usuario', details: e.message });
+    res.status(500).json({ error: 'Error getting user', details: e.message });
   }
 }
 
@@ -92,7 +92,7 @@ async function getUserByEmail(req, res) {
 async function getUserByQR(req, res) {
   try {
     const { qr } = req.params;
-    console.log(`[getUserByQR] Buscando usuario con QR: ${qr}`);
+    console.log(`[getUserByQR] Searching for user with QR: ${qr}`);
 
     const user = await Users.findOne({
       where: { qr },
@@ -100,20 +100,20 @@ async function getUserByQR(req, res) {
     });
 
     if (!user) {
-      console.log(`[getUserByQR] Usuario con QR ${qr} no encontrado`);
+      console.log(`[getUserByQR] User with QR ${qr} not found`);
       return res.status(404).json({
-        error: 'Usuario no encontrado',
+        error: 'User not found',
         qr
       });
     }
 
-    console.log(`[getUserByQR] Usuario encontrado: ${user.nombre}`);
+    console.log(`[getUserByQR] User found: ${user.nombre}`);
     res.json(user);
   } catch (e) {
-    console.error('[getUserByQR] Error obteniendo usuario:');
-    console.error('Mensaje:', e.message);
+    console.error('[getUserByQR] Error retrieving user:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
-    res.status(500).json({ error: 'Error obteniendo usuario', details: e.message });
+    res.status(500).json({ error: 'Error getting user', details: e.message });
   }
 }
 
@@ -123,29 +123,29 @@ async function getUserByQR(req, res) {
 async function createUser(req, res) {
   try {
     const { nombre, correo, contrasena, preferenciaTemperatura, esAdmin } = req.body;
-    console.log(`[createUser] Creando usuario: ${nombre} (${correo})`);
+    console.log(`[createUser] Creating user: ${nombre} (${correo})`);
 
     // Validar campos requeridos
     if (!nombre || !correo || !contrasena) {
-      console.log('[createUser] Faltan campos requeridos');
+      console.log('[createUser] Missing required fields');
       return res.status(400).json({
-        error: 'Faltan campos requeridos',
+        error: 'Missing required fields',
         required: ['nombre', 'correo', 'contrasena']
       });
     }
 
     // Validar preferencia de temperatura si se proporciona
     if (preferenciaTemperatura && !['COLD', 'WARM', 'HOT'].includes(preferenciaTemperatura)) {
-      console.log(`[createUser] Preferencia de temperatura inválida: ${preferenciaTemperatura}`);
+      console.log(`[createUser] Invalid temperature preference: ${preferenciaTemperatura}`);
       return res.status(400).json({
-        error: 'Preferencia de temperatura inválida',
+        error: 'Invalid temperature preference',
         validValues: ['COLD', 'WARM', 'HOT']
       });
     }
 
     // Hash de la contraseña
     const hashedPassword = await bcrypt.hash(contrasena, 10);
-    console.log('[createUser] Contraseña hasheada correctamente');
+    console.log('[createUser] Password hashed successfully');
 
     const qrCodeValue = uuidv4(); // Generar QR único
 
@@ -158,8 +158,8 @@ async function createUser(req, res) {
       esAdmin: esAdmin || false
     });
 
-    console.log(`[createUser] Usuario creado exitosamente con ID: ${newUser.id} - Admin: ${newUser.esAdmin}`);
-    console.log(`[createUser] Usuario creado con QR: ${qrCodeValue}`);
+    console.log(`[createUser] User created successfully with ID: ${newUser.id} - Admin: ${newUser.esAdmin}`);
+    console.log(`[createUser] User created with QR: ${qrCodeValue}`);
 
 
     // Devolver usuario sin contraseña
@@ -168,13 +168,13 @@ async function createUser(req, res) {
 
     res.status(201).json(userResponse);
   } catch (e) {
-    console.error('[createUser] Error creando usuario:');
-    console.error('Mensaje:', e.message);
+    console.error('[createUser] Error creating user:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
 
     if (e.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({
-        error: 'El correo o QR ya está registrado',
+        error: 'Email or QR already registered',
         details: e.message
       });
     }
@@ -197,23 +197,23 @@ async function updateUser(req, res) {
   try {
     const { id } = req.params;
     const { nombre, correo, contrasena, qr, preferenciaTemperatura, esAdmin } = req.body;
-    console.log(`[updateUser] Actualizando usuario con ID: ${id}`);
+    console.log(`[updateUser] Updating user with ID: ${id}`);
 
     const user = await Users.findByPk(id);
 
     if (!user) {
-      console.log(`[updateUser] Usuario con ID ${id} no encontrado`);
+      console.log(`[updateUser] User with ID ${id} not found`);
       return res.status(404).json({
-        error: 'Usuario no encontrado',
+        error: 'User not found',
         id: parseInt(id)
       });
     }
 
     // Validar preferencia de temperatura si se proporciona
     if (preferenciaTemperatura && !['COLD', 'WARM', 'HOT'].includes(preferenciaTemperatura)) {
-      console.log(`[updateUser] Preferencia de temperatura inválida: ${preferenciaTemperatura}`);
+      console.log(`[updateUser] Invalid temperature preference: ${preferenciaTemperatura}`);
       return res.status(400).json({
-        error: 'Preferencia de temperatura inválida',
+        error: 'Invalid temperature preference',
         validValues: ['COLD', 'WARM', 'HOT']
       });
     }
@@ -229,11 +229,11 @@ async function updateUser(req, res) {
     // Si se proporciona contraseña, hashearla
     if (contrasena) {
       updateData.contrasena = await bcrypt.hash(contrasena, 10);
-      console.log('[updateUser] Nueva contraseña hasheada');
+      console.log('[updateUser] New password hashed');
     }
 
     await user.update(updateData);
-    console.log(`[updateUser] Usuario actualizado exitosamente: ${user.nombre} - Admin: ${user.esAdmin}`);
+    console.log(`[updateUser] User updated successfully: ${user.nombre} - Admin: ${user.esAdmin}`);
 
     // Devolver usuario sin contraseña
     const userResponse = user.toJSON();
@@ -241,8 +241,8 @@ async function updateUser(req, res) {
 
     res.json(userResponse);
   } catch (e) {
-    console.error('[updateUser] Error actualizando usuario:');
-    console.error('Mensaje:', e.message);
+    console.error('[updateUser] Error updating user:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
 
     if (e.name === 'SequelizeUniqueConstraintError') {
@@ -254,12 +254,12 @@ async function updateUser(req, res) {
 
     if (e.name === 'SequelizeValidationError') {
       return res.status(400).json({
-        error: 'Error de validación',
+        error: 'Validation error',
         details: e.errors.map(err => err.message)
       });
     }
 
-    res.status(500).json({ error: 'Error actualizando usuario', details: e.message });
+    res.status(500).json({ error: 'Error updating user', details: e.message });
   }
 }
 
@@ -269,31 +269,31 @@ async function updateUser(req, res) {
 async function deleteUser(req, res) {
   try {
     const { id } = req.params;
-    console.log(`[deleteUser] Eliminando usuario con ID: ${id}`);
+    console.log(`[deleteUser] Deleting user with ID: ${id}`);
 
     const user = await Users.findByPk(id);
 
     if (!user) {
-      console.log(`[deleteUser] Usuario con ID ${id} no encontrado`);
+      console.log(`[deleteUser] User with ID ${id} not found`);
       return res.status(404).json({
-        error: 'Usuario no encontrado',
+        error: 'User not found',
         id: parseInt(id)
       });
     }
 
     const userName = user.nombre;
     await user.destroy();
-    console.log(`[deleteUser] Usuario eliminado exitosamente: ${userName}`);
+    console.log(`[deleteUser] User deleted successfully: ${userName}`);
 
     res.json({
-      message: 'Usuario eliminado exitosamente',
+      message: 'User deleted successfully',
       nombre: userName
     });
   } catch (e) {
-    console.error('[deleteUser] Error eliminando usuario:');
-    console.error('Mensaje:', e.message);
+    console.error('[deleteUser] Error deleting user:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
-    res.status(500).json({ error: 'Error eliminando usuario', details: e.message });
+    res.status(500).json({ error: 'Error deleting user', details: e.message });
   }
 }
 
@@ -303,35 +303,35 @@ async function deleteUser(req, res) {
 async function loginUser(req, res) {
   try {
     const { correo, contrasena } = req.body;
-    console.log(`[loginUser] Intento de login para: ${correo}`);
-    console.log(`[loginUser] Contraseña introducida: ${contrasena}`);
+    console.log(`[loginUser] Attempting login for: ${correo}`);
+    console.log(`[loginUser] Entered password: ${contrasena}`);
 
     if (!correo || !contrasena) {
-      console.log('[loginUser] Faltan credenciales');
+      console.log('[loginUser] Missing credentials');
       return res.status(400).json({
-        error: 'Se requiere correo y contraseña'
+        error: 'Email and password are required'
       });
     }
 
     const user = await Users.findOne({ where: { correo } });
 
     if (!user) {
-      console.log(`[loginUser] Usuario no encontrado: ${correo}`);
+      console.log(`[loginUser] User not found: ${correo}`);
       return res.status(401).json({
-        error: 'Credenciales inválidas'
+        error: 'Invalid credentials'
       });
     }
 
     const isPasswordValid = await bcrypt.compare(contrasena, user.contrasena);
 
     if (!isPasswordValid) {
-      console.log(`[loginUser] Contraseña incorrecta para: ${correo}`);
+      console.log(`[loginUser] Password incorrect for: ${correo}`);
       return res.status(401).json({
-        error: 'Credenciales inválidas'
+        error: 'Invalid credentials'
       });
     }
 
-    console.log(`[loginUser] Login exitoso para: ${user.nombre} - Preferencia: ${user.preferenciaTemperatura} - Admin: ${user.esAdmin}`);
+    console.log(`[loginUser] Login successful for: ${user.nombre} - Preference: ${user.preferenciaTemperatura} - Admin: ${user.esAdmin}`);
 
     // Devolver usuario sin contraseña
     const userResponse = user.toJSON();
@@ -345,10 +345,10 @@ async function loginUser(req, res) {
       }
     });
   } catch (e) {
-    console.error('[loginUser] Error en login:');
-    console.error('Mensaje:', e.message);
+    console.error('[loginUser] Error in login:');
+    console.error('Message:', e.message);
     console.error('Stack:', e.stack);
-    res.status(500).json({ error: 'Error en login', details: e.message });
+    res.status(500).json({ error: 'Error in login', details: e.message });
   }
 }
 
@@ -361,19 +361,19 @@ async function loginUser(req, res) {
 async function getQRImage(req, res) {
   try {
     const { id } = req.params;
-    console.log(`[getQRImage] Obteniendo imagen QR para usuario con ID: ${id}`);
+    console.log(`[getQRImage] Getting QR image for user with ID: ${id}`);
 
     const user = await Users.findByPk(id);
     
     if (!user) {
-      console.log(`[getQRImage] Usuario no encontrado para ID: ${id}`);
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      console.log(`[getQRImage] User not found for ID: ${id}`);
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // ← USAR EL ID DEL USUARIO, NO EL UUID
     const qrData = `USER_ID:${id}`;
-    
-    console.log(`[getQRImage] Generando QR con datos: '${qrData}' para usuario: ${user.nombre}`);
+
+    console.log(`[getQRImage] Generating QR with data: '${qrData}' for user: ${user.nombre}`);
 
     // Generar la imagen QR
     const qrImage = await QRCode.toBuffer(qrData, {
@@ -388,17 +388,17 @@ async function getQRImage(req, res) {
       }
     });
 
-    console.log(`[getQRImage] QR generado exitosamente: ${qrImage.length} bytes`);
+    console.log(`[getQRImage] QR successfully generated: ${qrImage.length} bytes`);
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Length', qrImage.length);
     res.send(qrImage);
 
-    console.log(`[getQRImage] Imagen QR enviada exitosamente para usuario: ${user.nombre}`);
+    console.log(`[getQRImage] QR image sent successfully for user: ${user.nombre}`);
 
   } catch (e) {
-    console.error(`[getQRImage] Error generando QR: ${e.message}`);
-    res.status(500).json({ error: 'Error generando QR', details: e.message });
+    console.error(`[getQRImage] Error generating QR: ${e.message}`);
+    res.status(500).json({ error: 'Error generating QR', details: e.message });
   }
 }
 
@@ -408,13 +408,13 @@ async function getQRImage(req, res) {
 async function forgotPassword(req, res) {
   try {
     const { correo } = req.body;
-    console.log(`[forgotPassword] Solicitando reset para: ${correo}`);
+    console.log(`[forgotPassword] Requesting reset for: ${correo}`);
 
     const user = await Users.findOne({ where: { correo } });
 
     if (!user) {
-      console.log(`[forgotPassword] Usuario no encontrado: ${correo}`);
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      console.log(`[forgotPassword] User not found: ${correo}`);
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // Generar código de 5 dígitos
@@ -438,32 +438,32 @@ async function forgotPassword(req, res) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: correo,
-      subject: 'Código de recuperación - IOT Mobile',
+      subject: 'Code of Recovery - IOT Mobile',
       html: `
-        <h2>Restablecer Contraseña</h2>
-        <p>Has solicitado restablecer tu contraseña.</p>
-        <p>Tu código de recuperación es:</p>
+        <h2>Reset Password</h2>
+        <p>You have requested to reset your password.</p>
+        <p>Your recovery code is:</p>
         <h3 style="background-color: #42A5F5; color: white; padding: 15px; border-radius: 5px; text-align: center; font-family: monospace; letter-spacing: 2px; font-size: 32px;">
           ${resetToken}
         </h3>
-        <p>Introduce este código en la app IOT Mobile para restablecer tu contraseña.</p>
+        <p>Introduce this code in the IOT Mobile app to reset your password.</p>
         <p style="margin-top: 20px; font-size: 12px; color: #757575;">
-          Este código expira en 1 hora.
+          This code expires in 1 hour.
         </p>
         <p style="font-size: 12px; color: #757575;">
-          Si no solicitaste esto, ignora este correo.
+          If you did not request this, please ignore this email.
         </p>
       `
     };
 
     await transporter.sendMail(mailOptions);
 
-    console.log(`[forgotPassword] Email de reset enviado a: ${correo}`);
-    res.json({ message: 'Se ha enviado un código de recuperación a tu correo electrónico' });
+    console.log(`[forgotPassword] Reset email sent to: ${correo}`);
+    res.json({ message: 'It has been sent a recovery code to your email' });
 
   } catch (e) {
     console.error(`[forgotPassword] Error: ${e.message}`);
-    res.status(500).json({ error: 'Error solicitando reset de contraseña' });
+    res.status(500).json({ error: 'Error requesting password reset' });
   }
 }
 
@@ -473,7 +473,7 @@ async function forgotPassword(req, res) {
 async function verifyResetToken(req, res) {
   try {
     const { token } = req.params;
-    console.log(`[verifyResetToken] Verificando token...`);
+    console.log(`[verifyResetToken] Verifying token...`);
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -487,15 +487,15 @@ async function verifyResetToken(req, res) {
     });
 
     if (!user) {
-      console.log(`[verifyResetToken] Token inválido o expirado`);
-      return res.status(400).json({ error: 'Token inválido o expirado' });
+      console.log(`[verifyResetToken] Invalid or expired token`);
+      return res.status(400).json({ error: 'Invalid token or expired' });
     }
 
-    res.json({ message: 'Token válido', userId: user.id });
+    res.json({ message: 'Valid token', userId: user.id });
 
   } catch (e) {
     console.error(`[verifyResetToken] Error: ${e.message}`);
-    res.status(500).json({ error: 'Error verificando token', details: e.message });
+    res.status(500).json({ error: 'Error verifying token', details: e.message });
   }
 }
 
@@ -505,7 +505,7 @@ async function verifyResetToken(req, res) {
 async function resetPassword(req, res) {
   try {
     const { token, nuevaContrasena } = req.body;
-    console.log(`[resetPassword] Reseteando contraseña...`);
+    console.log(`[resetPassword] Reseting password...`);
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -519,8 +519,8 @@ async function resetPassword(req, res) {
     });
 
     if (!user) {
-      console.log(`[resetPassword] Token inválido o expirado`);
-      return res.status(400).json({ error: 'Token inválido o expirado' });
+      console.log(`[resetPassword] Invalid or expired token`);
+      return res.status(400).json({ error: 'Invalid token or expired' });
     }
 
     // Hash de la nueva contraseña
@@ -532,12 +532,12 @@ async function resetPassword(req, res) {
       resetTokenExpiration: null
     });
 
-    console.log(`[resetPassword] Contraseña actualizada para usuario: ${user.correo}`);
-    res.json({ message: 'Contraseña actualizada exitosamente' });
+    console.log(`[resetPassword] Updated password for user: ${user.correo}`);
+    res.json({ message: 'Password updated successfully' });
 
   } catch (e) {
     console.error(`[resetPassword] Error: ${e.message}`);
-    res.status(500).json({ error: 'Error reseteando contraseña', details: e.message });
+    res.status(500).json({ error: 'Error resetting password', details: e.message });
   }
 }
 
@@ -550,10 +550,10 @@ async function getCurrentUser(req, res) {
     // Intentar obtener userId de query params o body
     const userId = req.query.userId || req.body.userId;
 
-    console.log(`[getCurrentUser] Obteniendo usuario actual con ID: ${userId}`);
+    console.log(`[getCurrentUser] Getting current user with ID: ${userId}`);
 
     if (!userId) {
-      console.log('[getCurrentUser] userId no proporcionado');
+      console.log('[getCurrentUser] userId not provided');
       return res.status(400).json({
         error: 'userId is required',
         hint: 'Use: GET /api/users/me?userId=YOUR_USER_ID'
@@ -565,11 +565,11 @@ async function getCurrentUser(req, res) {
     });
 
     if (!user) {
-      console.log(`[getCurrentUser] Usuario con ID ${userId} no encontrado`);
+      console.log(`[getCurrentUser] User with ID ${userId} not found`);
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log(`[getCurrentUser] Usuario encontrado: ${user.nombre} - Sala activa: ${user.activeRoomCode || 'ninguna'}`);
+    console.log(`[getCurrentUser] User found: ${user.nombre} - Active room: ${user.activeRoomCode || 'none'}`);
 
     const userResponse = user.toJSON();
 
