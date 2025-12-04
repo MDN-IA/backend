@@ -238,9 +238,11 @@ class RoomRecommenderML {
       totalScore += historyScore * this.weights.userHistory;
       scoreBreakdown.history = historyScore;
 
-      if (historyScore > 0.8) {
+      if (historyScore >= 0.85) {
         reasons.push('You have used this room frequently');
-      } else if (historyScore > 0.6) {
+      } else if (historyScore >= 0.70) {
+        reasons.push('You have visited this room several times');
+      } else if (historyScore >= 0.55) {
         reasons.push('You have visited this room before');
       }
 
@@ -339,11 +341,6 @@ class RoomRecommenderML {
   async calculateUserHistoryScore(room, userData) {
     if (!userData) return 0.5;
 
-    // Usuario está actualmente en esta sala
-    if (userData.activeRoomCode === room.code) {
-      return 0.9;
-    }
-
     try {
       // Intentar obtener historial real de la base de datos
       const { RoomAccessHistory } = require('../models');
@@ -359,10 +356,11 @@ class RoomRecommenderML {
         });
 
         // Score basado en frecuencia de visitas
-        if (visitCount > 10) return 0.95;  // Usuario frecuente
-        if (visitCount > 5) return 0.85;   // Usuario regular
-        if (visitCount > 2) return 0.75;   // Usuario ocasional
-        if (visitCount > 0) return 0.65;   // Ha visitado antes
+        // Los umbrales se ajustan para que aparezcan las razones correctas
+        if (visitCount >= 8) return 0.95;   // Usuario muy frecuente (>= 8 visitas)
+        if (visitCount >= 4) return 0.85;   // Usuario frecuente (>= 4 visitas)
+        if (visitCount >= 2) return 0.70;   // Usuario ocasional (>= 2 visitas)
+        if (visitCount >= 1) return 0.55;   // Ha visitado antes (>= 1 visita)
       }
 
       // Si no ha visitado o no existe historial, usar preferencia de temperatura
