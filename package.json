@@ -10,8 +10,10 @@
     "db:seed": "sequelize db:seed:all",
     "db:reset": "sequelize db:migrate:undo:all && sequelize db:migrate && sequelize db:seed:all",
     "ml:init": "node init-ml.js",
-    "ml:test-historial": "node src/ml/testHistorialVsTemperatura.js",
-    "ml:test-completo": "node src/ml/testMLCompleto.js"
+    "ml:test-temporal": "node src/ml/testTemporalSimple.js",
+    "ml:test-historical": "node src/ml/testMLHistorical.js",
+    "ml:test-similar": "node src/ml/testSimilarUsers.js",
+    "ml:test-training": "node src/ml/testTrainingML.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

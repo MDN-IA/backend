@@ -21,8 +21,7 @@ router.get('/', getUsers);
 // Login de usuario
 router.post('/login', loginUser);
 
-// ⚠️ IMPORTANTE: Rutas específicas ANTES de /:id
-// Obtener usuario actual (autenticado) - DEBE IR ANTES DE /:id
+// Obtener usuario actual (autenticado)
 router.get('/me', getCurrentUser);
 
 // Obtener usuario por correo
@@ -46,8 +45,7 @@ router.get('/verify-reset-token/:token', verifyResetToken);
 // Crear nuevo usuario
 router.post('/', createUser);
 
-// ⚠️ Estas rutas con /:id deben ir AL FINAL
-// Obtener usuario por ID (debe ir después de las rutas específicas)
+// Obtener usuario por ID
 router.get('/:id', getUserById);
 
 // Actualizar usuario
