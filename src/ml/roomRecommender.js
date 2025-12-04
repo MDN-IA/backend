@@ -1020,6 +1020,7 @@ class RoomRecommenderML {
         actualUsage,
         satisfaction,
         originalScore: originalScore.totalScore,
+        scoreBreakdown: originalScore.scoreBreakdown, // NUEVO: Desglose detallado
         targetScore: adjustedTarget,
         error: error,
         newScore: newScore.totalScore,

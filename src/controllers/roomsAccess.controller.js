@@ -50,6 +50,44 @@ async function registerRoomAccess(req, res) {
     if (user.activeRoomCode === roomCode) {
       t = await sequelize.transaction();
 
+      // CRITICAL: Calculate duration and register EXIT in history
+      const { RoomAccessHistory } = require('../models');
+
+      // Find the last ENTER record for this user in this room
+      const lastEntry = await RoomAccessHistory.findOne({
+        where: {
+          userId: user.id,
+          roomId: room.id,
+          action: 'ENTER'
+        },
+        order: [['timestamp', 'DESC']],
+        transaction: t
+      });
+
+      // Calculate duration in minutes
+      let duration = null;
+      if (lastEntry) {
+        const entryTime = new Date(lastEntry.timestamp);
+        const exitTime = new Date();
+        duration = Math.round((exitTime - entryTime) / 1000 / 60); // Convert to minutes
+
+        // Update the ENTER record with the duration
+        await lastEntry.update({ duration }, { transaction: t });
+      }
+
+      // Register EXIT action
+      await RoomAccessHistory.create({
+        userId: user.id,
+        roomId: room.id,
+        roomCode: room.code,
+        action: 'EXIT',
+        timestamp: new Date(),
+        duration: duration,
+        roomTemperature: room.temp,
+        roomLight: room.light,
+        roomHumidity: room.humidity
+      }, { transaction: t });
+
       room.currentOccupancy = Math.max(0, room.currentOccupancy - 1);
       await room.save({ transaction: t });
 
@@ -59,7 +97,7 @@ async function registerRoomAccess(req, res) {
 
       await t.commit();
 
-      console.log(`[EXIT] ${user.nombre} left ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+      console.log(`[EXIT] ${user.nombre} left ${room.name} (${room.currentOccupancy}/${room.capacity}) - Duration: ${duration || 'N/A'} min - History recorded`);
 
       return res.json({
         success: true,
@@ -68,7 +106,8 @@ async function registerRoomAccess(req, res) {
         userName: user.nombre,
         roomName: room.name,
         currentOccupancy: room.currentOccupancy,
-        capacity: room.capacity
+        capacity: room.capacity,
+        duration: duration
       });
     }
 
@@ -130,9 +169,22 @@ async function registerRoomAccess(req, res) {
     user.activeRoomCode = room.code;
     await user.save({ transaction: t });
 
+    // CRITICAL: Register ENTER in access history for ML learning
+    const { RoomAccessHistory } = require('../models');
+    await RoomAccessHistory.create({
+      userId: user.id,
+      roomId: room.id,
+      roomCode: room.code,
+      action: 'ENTER',
+      timestamp: new Date(),
+      roomTemperature: room.temp,
+      roomLight: room.light,
+      roomHumidity: room.humidity
+    }, { transaction: t });
+
     await t.commit();
 
-    console.log(`[ENTER] ${user.nombre} entered ${room.name} (${room.currentOccupancy}/${room.capacity})`);
+    console.log(`[ENTER] ${user.nombre} entered ${room.name} (${room.currentOccupancy}/${room.capacity}) - History recorded`);
 
     return res.json({
       success: true,

@@ -106,12 +106,17 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
       validate: {
-        isIn: [['low', 'medium', 'high']]
+        isIn: [['poor', 'neutral', 'good']]
       }
     },
     originalScore: {
       type: DataTypes.FLOAT,
       allowNull: false
+    },
+    scoreBreakdown: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      comment: 'Desglose de scores: {features, availability, history, similarUsers, temporal, capacity}'
     },
     targetScore: {
       type: DataTypes.FLOAT,
