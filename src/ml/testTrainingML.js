@@ -40,7 +40,7 @@ async function runTrainingTest() {
       roomId: 1,
       rating: 5,
       actualUsage: 90, // Se quedó 90 minutos
-      satisfaction: 'high'
+      satisfaction: 'good'
     };
 
     console.log('Current weights BEFORE training:');
@@ -74,7 +74,7 @@ async function runTrainingTest() {
       roomId: 3,
       rating: 2,
       actualUsage: 5, // Salió rápido
-      satisfaction: 'low'
+      satisfaction: 'poor'
     };
 
     const result2 = await recommender.trainModel(negativeFeedback);
@@ -100,7 +100,7 @@ async function runTrainingTest() {
       roomId: 2,
       rating: 3,
       actualUsage: 30,
-      satisfaction: 'medium'
+      satisfaction: 'neutral'
     };
 
     const result3 = await recommender.trainModel(neutralFeedback);

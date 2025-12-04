@@ -238,13 +238,17 @@ class RoomRecommenderML {
       totalScore += historyScore * this.weights.userHistory;
       scoreBreakdown.history = historyScore;
 
+      // Las razones de historial SOLO aparecen con scores que indican visitas reales
+      // 0.95 = 8+ visitas, 0.85 = 4+ visitas, 0.70 = 2+ visitas, 0.60 = 1+ visita
+      // 0.30 o menos = sin visitas (no genera razones)
       if (historyScore >= 0.85) {
         reasons.push('You have used this room frequently');
       } else if (historyScore >= 0.70) {
         reasons.push('You have visited this room several times');
-      } else if (historyScore >= 0.55) {
+      } else if (historyScore >= 0.60) {
         reasons.push('You have visited this room before');
       }
+      // Si historyScore < 0.60, NO se agrega ninguna razón de historial
 
       // 3. Score de usuarios similares (8%)
       const similarUsersScore = await this.calculateSimilarUsersScore(room, userData);
@@ -355,34 +359,23 @@ class RoomRecommenderML {
           }
         });
 
-        // Score basado en frecuencia de visitas
-        // Los umbrales se ajustan para que aparezcan las razones correctas
+        // Score basado ÚNICAMENTE en frecuencia de visitas reales
+        // Los umbrales son específicos para que solo aparezcan con visitas confirmadas
         if (visitCount >= 8) return 0.95;   // Usuario muy frecuente (>= 8 visitas)
         if (visitCount >= 4) return 0.85;   // Usuario frecuente (>= 4 visitas)
         if (visitCount >= 2) return 0.70;   // Usuario ocasional (>= 2 visitas)
-        if (visitCount >= 1) return 0.55;   // Ha visitado antes (>= 1 visita)
+        if (visitCount >= 1) return 0.60;   // Ha visitado antes (>= 1 visita)
+
+        // Si visitCount === 0, NO usar temperatura, sino score base bajo
+        // Esto es CRÍTICO para evitar que usuarios sin historial vean razones de visitas
+        return 0.3; // Score bajo para usuario sin historial en esta sala
       }
 
-      // Si no ha visitado o no existe historial, usar preferencia de temperatura
-      if (userData.preferenciaTemperatura && room.temp) {
-        const tempMatch = this.matchTemperaturePreference(
-          room.temp,
-          userData.preferenciaTemperatura
-        );
-        return tempMatch * 0.6;
-      }
-
-      return 0.5; // Score neutral
+      // Si la tabla no existe, usar score neutral (sin razones de historial)
+      return 0.5;
 
     } catch (error) {
-      // Si la tabla no existe, usar fallback basado en temperatura
-      if (userData.preferenciaTemperatura && room.temp) {
-        const tempMatch = this.matchTemperaturePreference(
-          room.temp,
-          userData.preferenciaTemperatura
-        );
-        return tempMatch * 0.6;
-      }
+      // Si hay error, usar score neutral (sin razones de historial)
       return 0.5;
     }
   }
@@ -893,9 +886,27 @@ class RoomRecommenderML {
         }
       }
 
+      // Ajuste adicional por satisfaction (cómo se sintió el usuario)
+      // Esto es CRÍTICO porque el usuario puede dar rating 3 pero sentirse muy mal (poor)
+      // o dar rating 4 pero estar extático (good)
+      if (satisfaction) {
+        if (satisfaction === 'good') {
+          adjustedTarget = Math.min(1.0, adjustedTarget + 0.15); // Aumentar target si muy satisfecho
+        } else if (satisfaction === 'poor') {
+          adjustedTarget = Math.max(0.0, adjustedTarget - 0.15); // Reducir target si insatisfecho
+        }
+        // 'neutral' no ajusta
+      }
+
       console.log('[TRAINING] Target calculation:');
       console.log(`  - Base target (from rating): ${(targetScore * 100).toFixed(2)}%`);
-      console.log(`  - Adjusted target (with usage): ${(adjustedTarget * 100).toFixed(2)}%`);
+      if (actualUsage !== undefined && actualUsage !== null) {
+        console.log(`  - After usage adjustment: ${(adjustedTarget * 100).toFixed(2)}%`);
+      }
+      if (satisfaction) {
+        console.log(`  - After satisfaction adjustment (${satisfaction}): ${(adjustedTarget * 100).toFixed(2)}%`);
+      }
+      console.log(`  - Final adjusted target: ${(adjustedTarget * 100).toFixed(2)}%`);
 
       // ======================================================================
       // PASO 5: CALCULAR ERROR
