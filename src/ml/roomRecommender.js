@@ -184,13 +184,33 @@ class RoomRecommenderML {
     const temporalResult = await this.calculateTemporalScore(room, userData, preferences);
     const temporalScore = temporalResult.score || temporalResult; // Compatibilidad con ambos formatos
     const hasTimePattern = temporalResult.hasTimePattern || false;
+    const timeSlot = temporalResult.timeSlot;
+    const visitRateInSlot = temporalResult.visitRateInSlot || 0;
 
     totalScore += temporalScore * this.weights.temporalPattern;
     scoreBreakdown.temporal = temporalScore;
 
-    // Solo mostrar razón si hay un patrón REAL de visitas en este horario
-    if (hasTimePattern && temporalScore > 0.7) {
-      reasons.push(`You frequently visit this room at this time`);
+    // Generar razones específicas según el patrón de visitas en este tramo del día
+    if (hasTimePattern && timeSlot) {
+      const timeSlotName = {
+        'morning': 'in the morning',
+        'afternoon': 'in the afternoon',
+        'evening': 'in the evening',
+        'night': 'at night'
+      }[timeSlot] || 'at this time';
+
+      // Mensajes diferentes según la frecuencia de visitas en este tramo
+      if (visitRateInSlot >= 0.6) {
+        // 60%+ de visitas en este tramo = muy frecuente
+        reasons.push(`You frequently visit this room ${timeSlotName}`);
+      } else if (visitRateInSlot >= 0.4) {
+        // 40-59% = frecuente
+        reasons.push(`You often visit this room ${timeSlotName}`);
+      } else if (visitRateInSlot >= 0.2) {
+        // 20-39% = algunas veces
+        reasons.push(`You sometimes visit this room ${timeSlotName}`);
+      }
+      // Si visitRateInSlot < 0.2, no se muestra razón (pero hasTimePattern ya sería false)
     }
     // NO mostrar razones basadas solo en preferencias manuales o fin de semana
 
@@ -291,13 +311,33 @@ class RoomRecommenderML {
       const temporalResult = await this.calculateTemporalScore(room, userData, preferences);
       const temporalScore = temporalResult.score || temporalResult; // Compatibilidad con ambos formatos
       const hasTimePattern = temporalResult.hasTimePattern || false;
+      const timeSlot = temporalResult.timeSlot;
+      const visitRateInSlot = temporalResult.visitRateInSlot || 0;
 
       totalScore += temporalScore * this.weights.temporalPattern;
       scoreBreakdown.temporal = temporalScore;
 
-      // Solo mostrar razón si hay un patrón REAL de visitas en este horario
-      if (hasTimePattern && temporalScore > 0.7) {
-        reasons.push(`You frequently visit this room at this time`);
+      // Generar razones específicas según el patrón de visitas en este tramo del día
+      if (hasTimePattern && timeSlot) {
+        const timeSlotName = {
+          'morning': 'in the morning',
+          'afternoon': 'in the afternoon',
+          'evening': 'in the evening',
+          'night': 'at night'
+        }[timeSlot] || 'at this time';
+
+        // Mensajes diferentes según la frecuencia de visitas en este tramo
+        if (visitRateInSlot >= 0.6) {
+          // 60%+ de visitas en este tramo = muy frecuente
+          reasons.push(`You frequently visit this room ${timeSlotName}`);
+        } else if (visitRateInSlot >= 0.4) {
+          // 40-59% = frecuente
+          reasons.push(`You often visit this room ${timeSlotName}`);
+        } else if (visitRateInSlot >= 0.2) {
+          // 20-39% = algunas veces
+          reasons.push(`You sometimes visit this room ${timeSlotName}`);
+        }
+        // Si visitRateInSlot < 0.2, no se muestra razón (pero hasTimePattern ya sería false)
       }
       // NO mostrar razones basadas solo en preferencias manuales o fin de semana
 
@@ -525,7 +565,7 @@ class RoomRecommenderML {
 
   /**
    * 5. Calcular score basado en patrones temporales
-   * Retorna: { score, hasTimePattern } para saber si hay patrón real de visitas en este horario
+   * Retorna: { score, hasTimePattern, timeSlot, visitRateInSlot } para generar razones específicas
    */
   async calculateTemporalScore(room, userData, preferences) {
     const now = new Date(Date.now()); // Usar Date.now() para permitir mocking en tests
@@ -534,6 +574,8 @@ class RoomRecommenderML {
 
     let score = 0.1; // Base score más bajo para dar más peso al patrón histórico
     let hasTimePattern = false; // Indica si hay patrón real de visitas en este horario
+    let currentTimeSlot = null;
+    let visitRateInSlot = 0;
 
     // =========================================================================
     // PARTE 1: Aprender del historial real del usuario (si existe)
@@ -574,65 +616,81 @@ class RoomRecommenderML {
               return 'night';
             };
 
-            const currentTimeSlot = getCurrentTimeSlot(currentHour);
+            currentTimeSlot = getCurrentTimeSlot(currentHour);
 
-            // Contar visitas en el MISMO TRAMO del día (no solo ±1 hora)
+            // Contar visitas en el MISMO TRAMO del día (morning/afternoon/evening)
             const visitsInCurrentTimeSlot = visitHours.filter(h => {
               return getCurrentTimeSlot(h) === currentTimeSlot;
             }).length;
 
-            // También contar visitas en ±1 hora para el score (más preciso)
+            // También contar visitas en ±1 hora para el score (más preciso para scoring)
             const visitsInCurrentHour = visitHours.filter(h =>
               Math.abs(h - currentHour) <= 1
             ).length;
 
-            // Calcular el porcentaje de visitas A ESTA SALA en este horario
+            // Calcular porcentajes
             const hourlyVisitRate = visitsInCurrentHour / visits.length;
-            const timeSlotVisitRate = visitsInCurrentTimeSlot / visits.length;
+            visitRateInSlot = visitsInCurrentTimeSlot / visits.length;
 
             console.log(`[ML] Room ${room.name}: ${visitsInCurrentHour}/${visits.length} visits around ${currentHour}:00 (${(hourlyVisitRate * 100).toFixed(1)}%)`);
-            console.log(`[ML] TimeSlot ${currentTimeSlot}: ${visitsInCurrentTimeSlot}/${visits.length} visits (${(timeSlotVisitRate * 100).toFixed(1)}%)`);
+            console.log(`[ML] TimeSlot ${currentTimeSlot}: ${visitsInCurrentTimeSlot}/${visits.length} visits (${(visitRateInSlot * 100).toFixed(1)}%)`);
 
-            if (visitsInCurrentHour > 0) {
-              // HAY visitas en este horario
-              // Pero solo marcar hasTimePattern si hay suficientes visitas en ESTE TRAMO del día
+            // DECISIÓN DE hasTimePattern: basada en el TRAMO DEL DÍA completo, no solo ±1 hora
+            // Esto permite que si visitaste la sala a las 14:00 (afternoon),
+            // la razón aparezca en cualquier momento de la tarde (12:00-17:59)
+            if (visitsInCurrentTimeSlot > 0) {
+              // Hay visitas en este tramo del día
               // Umbral: al menos 20% de las visitas deben ser en este tramo para que cuente como patrón
-              if (timeSlotVisitRate >= 0.2) {
+              if (visitRateInSlot >= 0.2) {
                 hasTimePattern = true;
-                console.log(`[ML] ✓ Time pattern detected in ${currentTimeSlot} slot`);
+                console.log(`[ML] ✓ Time pattern detected in ${currentTimeSlot} slot (${visitsInCurrentTimeSlot} visits)`);
               } else {
                 hasTimePattern = false;
-                console.log(`[ML] ✗ Not enough visits in ${currentTimeSlot} slot (${(timeSlotVisitRate * 100).toFixed(1)}%)`);
-              }
-
-              // Sistema de scoring progresivo basado en frecuencia DE ESTA SALA
-              // Si el usuario visita ESTA sala y lo hace principalmente en este horario = ALTO score
-              if (hourlyVisitRate >= 0.8) {
-                // 80%+ de las visitas a ESTA sala son en este horario = patrón muy fuerte
-                score = 0.90; // Bajado de 0.95 para dejar espacio al dayBonus
-                console.log(`[ML] VERY STRONG temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of THIS room's visits at this time`);
-              } else if (hourlyVisitRate >= 0.6) {
-                // 60-79% = patrón fuerte
-                score = 0.80; // Bajado de 0.85
-                console.log(`[ML] Strong temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of THIS room's visits at this time`);
-              } else if (hourlyVisitRate >= 0.4) {
-                // 40-59% = patrón moderado
-                score = 0.70; // Bajado de 0.75
-                console.log(`[ML] Moderate temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of THIS room's visits at this time`);
-              } else if (hourlyVisitRate >= 0.2) {
-                // 20-39% = patrón débil
-                score = 0.60; // Bajado de 0.65
-                console.log(`[ML] Weak temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of THIS room's visits at this time`);
-              } else {
-                // <20% = pocas visitas en este horario
-                score = 0.40; // Bajado de 0.45
-                console.log(`[ML] Few visits at this time: ${(hourlyVisitRate * 100).toFixed(0)}%`);
+                console.log(`[ML] ✗ Not enough visits in ${currentTimeSlot} slot (${(visitRateInSlot * 100).toFixed(1)}% < 20%)`);
               }
             } else {
-              // No hay visitas a esta sala en este horario = NO hay patrón
+              // No hay visitas en este tramo del día = NO hay patrón
               hasTimePattern = false;
+              console.log(`[ML] ✗ No visits in ${currentTimeSlot} slot`);
+            }
+
+            // SCORING: usar hourlyVisitRate (±1 hora) para dar scores más precisos
+            // Pero esto NO afecta hasTimePattern (que es por tramo del día)
+            if (visitsInCurrentHour > 0) {
+              // Sistema de scoring progresivo basado en frecuencia en ±1 hora
+              if (hourlyVisitRate >= 0.8) {
+                score = 0.90;
+                console.log(`[ML] VERY STRONG temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of visits at this hour`);
+              } else if (hourlyVisitRate >= 0.6) {
+                score = 0.80;
+                console.log(`[ML] Strong temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of visits at this hour`);
+              } else if (hourlyVisitRate >= 0.4) {
+                score = 0.70;
+                console.log(`[ML] Moderate temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of visits at this hour`);
+              } else if (hourlyVisitRate >= 0.2) {
+                score = 0.60;
+                console.log(`[ML] Weak temporal pattern: ${(hourlyVisitRate * 100).toFixed(0)}% of visits at this hour`);
+              } else {
+                score = 0.40;
+                console.log(`[ML] Few visits at this hour: ${(hourlyVisitRate * 100).toFixed(0)}%`);
+              }
+            } else if (visitsInCurrentTimeSlot > 0) {
+              // Hay visitas en el tramo del día, pero no en ±1 hora
+              // Dar un score moderado basado en el tramo del día
+              if (visitRateInSlot >= 0.6) {
+                score = 0.70;
+              } else if (visitRateInSlot >= 0.4) {
+                score = 0.60;
+              } else if (visitRateInSlot >= 0.2) {
+                score = 0.50;
+              } else {
+                score = 0.40;
+              }
+              console.log(`[ML] Visits in ${currentTimeSlot} slot, but not at this exact hour. Score: ${score.toFixed(2)}`);
+            } else {
+              // No hay visitas ni en el tramo ni en la hora
               score = 0.2;
-              console.log(`[ML] No visits to THIS room at this time (${currentHour}:00)`);
+              console.log(`[ML] No visits in ${currentTimeSlot} slot or at this hour`);
             }
 
             // Bonus adicional por día de la semana (máximo 0.1 para no superar 1.0)
@@ -646,8 +704,13 @@ class RoomRecommenderML {
               }
             }
 
-            // Ya tenemos historial, devolver resultado
-            return { score: Math.min(1.0, score), hasTimePattern };
+            // Ya tenemos historial, devolver resultado con información del tramo
+            return {
+              score: Math.min(1.0, score),
+              hasTimePattern,
+              timeSlot: currentTimeSlot,
+              visitRateInSlot
+            };
           }
         }
       } catch (error) {
@@ -680,7 +743,12 @@ class RoomRecommenderML {
     }
 
     // Devolver objeto - hasTimePattern sigue en false porque no hay patrón de visitas real
-    return { score: Math.min(1.0, score), hasTimePattern: false };
+    return {
+      score: Math.min(1.0, score),
+      hasTimePattern: false,
+      timeSlot: null,
+      visitRateInSlot: 0
+    };
   }
 
   /**
