@@ -565,20 +565,45 @@ class RoomRecommenderML {
               return new Date(date).getDay();
             });
 
-            // ¿El usuario visita esta sala frecuentemente a esta hora?
-            // Rango estricto: ±1 hora para patrones más precisos
+            // Determinar el tramo del día actual
+            // morning: 6-11, afternoon: 12-17, evening: 18-23, night: 0-5
+            const getCurrentTimeSlot = (hour) => {
+              if (hour >= 6 && hour < 12) return 'morning';
+              if (hour >= 12 && hour < 18) return 'afternoon';
+              if (hour >= 18 && hour < 24) return 'evening';
+              return 'night';
+            };
+
+            const currentTimeSlot = getCurrentTimeSlot(currentHour);
+
+            // Contar visitas en el MISMO TRAMO del día (no solo ±1 hora)
+            const visitsInCurrentTimeSlot = visitHours.filter(h => {
+              return getCurrentTimeSlot(h) === currentTimeSlot;
+            }).length;
+
+            // También contar visitas en ±1 hora para el score (más preciso)
             const visitsInCurrentHour = visitHours.filter(h =>
               Math.abs(h - currentHour) <= 1
             ).length;
 
             // Calcular el porcentaje de visitas A ESTA SALA en este horario
             const hourlyVisitRate = visitsInCurrentHour / visits.length;
+            const timeSlotVisitRate = visitsInCurrentTimeSlot / visits.length;
 
             console.log(`[ML] Room ${room.name}: ${visitsInCurrentHour}/${visits.length} visits around ${currentHour}:00 (${(hourlyVisitRate * 100).toFixed(1)}%)`);
+            console.log(`[ML] TimeSlot ${currentTimeSlot}: ${visitsInCurrentTimeSlot}/${visits.length} visits (${(timeSlotVisitRate * 100).toFixed(1)}%)`);
 
             if (visitsInCurrentHour > 0) {
-              // HAY visitas en este horario = marcar patrón como verdadero
-              hasTimePattern = true;
+              // HAY visitas en este horario
+              // Pero solo marcar hasTimePattern si hay suficientes visitas en ESTE TRAMO del día
+              // Umbral: al menos 20% de las visitas deben ser en este tramo para que cuente como patrón
+              if (timeSlotVisitRate >= 0.2) {
+                hasTimePattern = true;
+                console.log(`[ML] ✓ Time pattern detected in ${currentTimeSlot} slot`);
+              } else {
+                hasTimePattern = false;
+                console.log(`[ML] ✗ Not enough visits in ${currentTimeSlot} slot (${(timeSlotVisitRate * 100).toFixed(1)}%)`);
+              }
 
               // Sistema de scoring progresivo basado en frecuencia DE ESTA SALA
               // Si el usuario visita ESTA sala y lo hace principalmente en este horario = ALTO score
