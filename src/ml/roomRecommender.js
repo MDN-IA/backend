@@ -150,7 +150,8 @@ class RoomRecommenderML {
     totalScore += similarUsersScore * this.weights.similarUsers;
     scoreBreakdown.similarUsers = similarUsersScore;
 
-    if (similarUsersScore > 0.6) {
+    // Umbral aumentado a 0.75 para ser más selectivo (requiere 2+ visitas promedio)
+    if (similarUsersScore >= 0.75) {
       reasons.push('Similar users prefer this room');
     }
 
@@ -180,15 +181,18 @@ class RoomRecommenderML {
     }
 
     // 5. Score de patrones temporales (5%)
-    const temporalScore = await this.calculateTemporalScore(room, userData, preferences);
+    const temporalResult = await this.calculateTemporalScore(room, userData, preferences);
+    const temporalScore = temporalResult.score || temporalResult; // Compatibilidad con ambos formatos
+    const hasTimePattern = temporalResult.hasTimePattern || false;
+
     totalScore += temporalScore * this.weights.temporalPattern;
     scoreBreakdown.temporal = temporalScore;
 
-    if (temporalScore > 0.8) {
+    // Solo mostrar razón si hay un patrón REAL de visitas en este horario
+    if (hasTimePattern && temporalScore > 0.7) {
       reasons.push(`You frequently visit this room at this time`);
-    } else if (temporalScore > 0.6) {
-      reasons.push(`Good moment to use this room (${preferences.preferredTimeSlot || 'now'})`);
     }
+    // NO mostrar razones basadas solo en preferencias manuales o fin de semana
 
     // 6. Score de capacidad (2%)
     const capacityScore = this.calculateCapacityScore(room, preferences);
@@ -238,24 +242,23 @@ class RoomRecommenderML {
       totalScore += historyScore * this.weights.userHistory;
       scoreBreakdown.history = historyScore;
 
-      // Las razones de historial SOLO aparecen con scores que indican visitas reales
-      // 0.95 = 8+ visitas, 0.85 = 4+ visitas, 0.70 = 2+ visitas, 0.60 = 1+ visita
-      // 0.30 o menos = sin visitas (no genera razones)
+      // Las razones de historial SOLO aparecen con 3+ visitas confirmadas
+      // 0.95 = 8+ visitas, 0.85 = 4+ visitas, 0.70 = 3+ visitas
+      // Scores menores (2 visitas o menos) NO generan razones
       if (historyScore >= 0.85) {
         reasons.push('You have used this room frequently');
       } else if (historyScore >= 0.70) {
-        reasons.push('You have visited this room several times');
-      } else if (historyScore >= 0.60) {
         reasons.push('You have visited this room before');
       }
-      // Si historyScore < 0.60, NO se agrega ninguna razón de historial
+      // Si historyScore < 0.70 (menos de 3 visitas), NO se agrega ninguna razón de historial
 
       // 3. Score de usuarios similares (8%)
       const similarUsersScore = await this.calculateSimilarUsersScore(room, userData);
       totalScore += similarUsersScore * this.weights.similarUsers;
       scoreBreakdown.similarUsers = similarUsersScore;
 
-      if (similarUsersScore > 0.6) {
+      // Umbral aumentado a 0.7 para ser más selectivo (requiere 2+ visitas promedio)
+      if (similarUsersScore >= 0.75) {
         reasons.push('Similar users prefer this room');
       }
 
@@ -285,15 +288,18 @@ class RoomRecommenderML {
       }
 
       // 5. Score de patrones temporales (5%)
-      const temporalScore = await this.calculateTemporalScore(room, userData, preferences);
+      const temporalResult = await this.calculateTemporalScore(room, userData, preferences);
+      const temporalScore = temporalResult.score || temporalResult; // Compatibilidad con ambos formatos
+      const hasTimePattern = temporalResult.hasTimePattern || false;
+
       totalScore += temporalScore * this.weights.temporalPattern;
       scoreBreakdown.temporal = temporalScore;
 
-      if (temporalScore > 0.8) {
+      // Solo mostrar razón si hay un patrón REAL de visitas en este horario
+      if (hasTimePattern && temporalScore > 0.7) {
         reasons.push(`You frequently visit this room at this time`);
-      } else if (temporalScore > 0.6) {
-        reasons.push(`Good moment to use this room (${preferences.preferredTimeSlot || 'now'})`);
       }
+      // NO mostrar razones basadas solo en preferencias manuales o fin de semana
 
       // 6. Score de capacidad (2%)
       const capacityScore = this.calculateCapacityScore(room, preferences);
@@ -360,11 +366,11 @@ class RoomRecommenderML {
         });
 
         // Score basado ÚNICAMENTE en frecuencia de visitas reales
-        // Los umbrales son específicos para que solo aparezcan con visitas confirmadas
+        // Las razones solo aparecen con 3+ visitas (score >= 0.70)
         if (visitCount >= 8) return 0.95;   // Usuario muy frecuente (>= 8 visitas)
         if (visitCount >= 4) return 0.85;   // Usuario frecuente (>= 4 visitas)
-        if (visitCount >= 2) return 0.70;   // Usuario ocasional (>= 2 visitas)
-        if (visitCount >= 1) return 0.60;   // Ha visitado antes (>= 1 visita)
+        if (visitCount >= 3) return 0.70;   // Ha visitado antes (>= 3 visitas) ⬅️ CAMBIO AQUÍ
+        if (visitCount >= 1) return 0.55;   // Pocas visitas (1-2 visitas, sin razón)
 
         // Si visitCount === 0, NO usar temperatura, sino score base bajo
         // Esto es CRÍTICO para evitar que usuarios sin historial vean razones de visitas
@@ -519,6 +525,7 @@ class RoomRecommenderML {
 
   /**
    * 5. Calcular score basado en patrones temporales
+   * Retorna: { score, hasTimePattern } para saber si hay patrón real de visitas en este horario
    */
   async calculateTemporalScore(room, userData, preferences) {
     const now = new Date(Date.now()); // Usar Date.now() para permitir mocking en tests
@@ -526,6 +533,7 @@ class RoomRecommenderML {
     const currentDay = now.getDay(); // 0 = domingo, 6 = sábado
 
     let score = 0.1; // Base score más bajo para dar más peso al patrón histórico
+    let hasTimePattern = false; // Indica si hay patrón real de visitas en este horario
 
     // =========================================================================
     // PARTE 1: Aprender del historial real del usuario (si existe)
@@ -569,6 +577,9 @@ class RoomRecommenderML {
             console.log(`[ML] Room ${room.name}: ${visitsInCurrentHour}/${visits.length} visits around ${currentHour}:00 (${(hourlyVisitRate * 100).toFixed(1)}%)`);
 
             if (visitsInCurrentHour > 0) {
+              // HAY visitas en este horario = marcar patrón como verdadero
+              hasTimePattern = true;
+
               // Sistema de scoring progresivo basado en frecuencia DE ESTA SALA
               // Si el usuario visita ESTA sala y lo hace principalmente en este horario = ALTO score
               if (hourlyVisitRate >= 0.8) {
@@ -593,7 +604,8 @@ class RoomRecommenderML {
                 console.log(`[ML] Few visits at this time: ${(hourlyVisitRate * 100).toFixed(0)}%`);
               }
             } else {
-              // No hay visitas a esta sala en este horario = penalización fuerte
+              // No hay visitas a esta sala en este horario = NO hay patrón
+              hasTimePattern = false;
               score = 0.2;
               console.log(`[ML] No visits to THIS room at this time (${currentHour}:00)`);
             }
@@ -609,8 +621,8 @@ class RoomRecommenderML {
               }
             }
 
-            // Ya tenemos historial, no usar preferencias manuales
-            return Math.min(1.0, score);
+            // Ya tenemos historial, devolver resultado
+            return { score: Math.min(1.0, score), hasTimePattern };
           }
         }
       } catch (error) {
@@ -621,7 +633,7 @@ class RoomRecommenderML {
 
     // =========================================================================
     // PARTE 2: Usar preferencias manuales del usuario (fallback o complemento)
-    // Solo si NO hay historial
+    // Solo si NO hay historial - NO genera hasTimePattern
     // =========================================================================
     const timeSlot = preferences.preferredTimeSlot;
     if (timeSlot) {
@@ -642,7 +654,8 @@ class RoomRecommenderML {
       score += 0.1; // Bonus pequeño para fin de semana
     }
 
-    return Math.min(1.0, score);
+    // Devolver objeto - hasTimePattern sigue en false porque no hay patrón de visitas real
+    return { score: Math.min(1.0, score), hasTimePattern: false };
   }
 
   /**
