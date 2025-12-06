@@ -194,12 +194,14 @@ class RoomRecommenderML {
     const hasTimePattern = temporalResult.hasTimePattern || false;
     const timeSlot = temporalResult.timeSlot;
     const visitRateInSlot = temporalResult.visitRateInSlot || 0;
+    const visitsInTimeSlot = temporalResult.visitsInTimeSlot || 0;
 
     totalScore += temporalScore * this.weights.temporalPattern;
     scoreBreakdown.temporal = temporalScore;
 
-    // Generar razones específicas según el patrón de visitas en este tramo del día
-    if (hasTimePattern && timeSlot) {
+    // Generar razones específicas según el número de visitas en este tramo del día
+    // Baremos según visitas en el tramo: 3=Occasional, 10=Regular, 25=Frequent, 50=Very Frequent
+    if (hasTimePattern && timeSlot && visitsInTimeSlot >= 3) {
       const timeSlotName = {
         'morning': 'in the morning',
         'afternoon': 'in the afternoon',
@@ -207,18 +209,17 @@ class RoomRecommenderML {
         'night': 'at night'
       }[timeSlot] || 'at this time';
 
-      // Mensajes diferentes según la frecuencia de visitas en este tramo
-      if (visitRateInSlot >= 0.6) {
-        // 60%+ de visitas en este tramo = muy frecuente
-        reasons.push(`You frequently visit this room ${timeSlotName}`);
-      } else if (visitRateInSlot >= 0.4) {
-        // 40-59% = frecuente
-        reasons.push(`You often visit this room ${timeSlotName}`);
-      } else if (visitRateInSlot >= 0.2) {
-        // 20-39% = algunas veces
-        reasons.push(`You sometimes visit this room ${timeSlotName}`);
+      // Mensajes personalizados según el número de visitas EN ESTE TRAMO
+      if (visitsInTimeSlot >= 50) {
+        reasons.push(`Very frequent visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
+      } else if (visitsInTimeSlot >= 25) {
+        reasons.push(`Frequent visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
+      } else if (visitsInTimeSlot >= 10) {
+        reasons.push(`Regular visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
+      } else if (visitsInTimeSlot >= 3) {
+        reasons.push(`Occasional visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
       }
-      // Si visitRateInSlot < 0.2, no se muestra razón (pero hasTimePattern ya sería false)
+      // Si visitsInTimeSlot < 3, no se muestra razón (usuario nuevo en este tramo)
     }
     // NO mostrar razones basadas solo en preferencias manuales o fin de semana
 
@@ -327,12 +328,14 @@ class RoomRecommenderML {
       const hasTimePattern = temporalResult.hasTimePattern || false;
       const timeSlot = temporalResult.timeSlot;
       const visitRateInSlot = temporalResult.visitRateInSlot || 0;
+      const visitsInTimeSlot = temporalResult.visitsInTimeSlot || 0;
 
       totalScore += temporalScore * this.weights.temporalPattern;
       scoreBreakdown.temporal = temporalScore;
 
-      // Generar razones específicas según el patrón de visitas en este tramo del día
-      if (hasTimePattern && timeSlot) {
+      // Generar razones específicas según el número de visitas en este tramo del día
+      // Baremos según visitas en el tramo: 3=Occasional, 10=Regular, 25=Frequent, 50=Very Frequent
+      if (hasTimePattern && timeSlot && visitsInTimeSlot >= 3) {
         const timeSlotName = {
           'morning': 'in the morning',
           'afternoon': 'in the afternoon',
@@ -340,18 +343,17 @@ class RoomRecommenderML {
           'night': 'at night'
         }[timeSlot] || 'at this time';
 
-        // Mensajes diferentes según la frecuencia de visitas en este tramo
-        if (visitRateInSlot >= 0.6) {
-          // 60%+ de visitas en este tramo = muy frecuente
-          reasons.push(`You frequently visit this room ${timeSlotName}`);
-        } else if (visitRateInSlot >= 0.4) {
-          // 40-59% = frecuente
-          reasons.push(`You often visit this room ${timeSlotName}`);
-        } else if (visitRateInSlot >= 0.2) {
-          // 20-39% = algunas veces
-          reasons.push(`You sometimes visit this room ${timeSlotName}`);
+        // Mensajes personalizados según el número de visitas EN ESTE TRAMO
+        if (visitsInTimeSlot >= 50) {
+          reasons.push(`Very frequent visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
+        } else if (visitsInTimeSlot >= 25) {
+          reasons.push(`Frequent visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
+        } else if (visitsInTimeSlot >= 10) {
+          reasons.push(`Regular visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
+        } else if (visitsInTimeSlot >= 3) {
+          reasons.push(`Occasional visitor ${timeSlotName} (${visitsInTimeSlot} visits)`);
         }
-        // Si visitRateInSlot < 0.2, no se muestra razón (pero hasTimePattern ya sería false)
+        // Si visitsInTimeSlot < 3, no se muestra razón (usuario nuevo en este tramo)
       }
       // NO mostrar razones basadas solo en preferencias manuales o fin de semana
 
@@ -588,7 +590,7 @@ class RoomRecommenderML {
 
   /**
    * 5. Calcular score basado en patrones temporales
-   * Retorna: { score, hasTimePattern, timeSlot, visitRateInSlot } para generar razones específicas
+   * Retorna: { score, hasTimePattern, timeSlot, visitRateInSlot, visitsInTimeSlot } para generar razones específicas
    */
   async calculateTemporalScore(room, userData, preferences) {
     const now = new Date(Date.now()); // Usar Date.now() para permitir mocking en tests
@@ -599,6 +601,7 @@ class RoomRecommenderML {
     let hasTimePattern = false; // Indica si hay patrón real de visitas en este horario
     let currentTimeSlot = null;
     let visitRateInSlot = 0;
+    let visitsInTimeSlot = 0; // Número absoluto de visitas en este tramo
 
     // =========================================================================
     // PARTE 1: Aprender del historial real del usuario (si existe)
@@ -642,7 +645,7 @@ class RoomRecommenderML {
             currentTimeSlot = getCurrentTimeSlot(currentHour);
 
             // Contar visitas en el MISMO TRAMO del día (morning/afternoon/evening)
-            const visitsInCurrentTimeSlot = visitHours.filter(h => {
+            visitsInTimeSlot = visitHours.filter(h => {
               return getCurrentTimeSlot(h) === currentTimeSlot;
             }).length;
 
@@ -653,20 +656,20 @@ class RoomRecommenderML {
 
             // Calcular porcentajes
             const hourlyVisitRate = visitsInCurrentHour / visits.length;
-            visitRateInSlot = visitsInCurrentTimeSlot / visits.length;
+            visitRateInSlot = visitsInTimeSlot / visits.length;
 
             console.log(`[ML] Room ${room.name}: ${visitsInCurrentHour}/${visits.length} visits around ${currentHour}:00 (${(hourlyVisitRate * 100).toFixed(1)}%)`);
-            console.log(`[ML] TimeSlot ${currentTimeSlot}: ${visitsInCurrentTimeSlot}/${visits.length} visits (${(visitRateInSlot * 100).toFixed(1)}%)`);
+            console.log(`[ML] TimeSlot ${currentTimeSlot}: ${visitsInTimeSlot}/${visits.length} visits (${(visitRateInSlot * 100).toFixed(1)}%)`);
 
             // DECISIÓN DE hasTimePattern: basada en el TRAMO DEL DÍA completo, no solo ±1 hora
             // Esto permite que si visitaste la sala a las 14:00 (afternoon),
             // la razón aparezca en cualquier momento de la tarde (12:00-17:59)
-            if (visitsInCurrentTimeSlot > 0) {
+            if (visitsInTimeSlot > 0) {
               // Hay visitas en este tramo del día
               // Umbral: al menos 20% de las visitas deben ser en este tramo para que cuente como patrón
               if (visitRateInSlot >= 0.2) {
                 hasTimePattern = true;
-                console.log(`[ML] ✓ Time pattern detected in ${currentTimeSlot} slot (${visitsInCurrentTimeSlot} visits)`);
+                console.log(`[ML] ✓ Time pattern detected in ${currentTimeSlot} slot (${visitsInTimeSlot} visits)`);
               } else {
                 hasTimePattern = false;
                 console.log(`[ML] ✗ Not enough visits in ${currentTimeSlot} slot (${(visitRateInSlot * 100).toFixed(1)}% < 20%)`);
@@ -697,7 +700,7 @@ class RoomRecommenderML {
                 score = 0.40;
                 console.log(`[ML] Few visits at this hour: ${(hourlyVisitRate * 100).toFixed(0)}%`);
               }
-            } else if (visitsInCurrentTimeSlot > 0) {
+            } else if (visitsInTimeSlot > 0) {
               // Hay visitas en el tramo del día, pero no en ±1 hora
               // Dar un score moderado basado en el tramo del día
               if (visitRateInSlot >= 0.6) {
@@ -732,7 +735,8 @@ class RoomRecommenderML {
               score: Math.min(1.0, score),
               hasTimePattern,
               timeSlot: currentTimeSlot,
-              visitRateInSlot
+              visitRateInSlot,
+              visitsInTimeSlot  // Número absoluto de visitas en este tramo del día
             };
           }
         }
@@ -755,7 +759,8 @@ class RoomRecommenderML {
       score: Math.min(1.0, score),
       hasTimePattern: false,
       timeSlot: null,
-      visitRateInSlot: 0
+      visitRateInSlot: 0,
+      visitsInTimeSlot: 0
     };
   }
 
