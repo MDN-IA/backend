@@ -128,15 +128,13 @@ async function runSimpleTest() {
     // Get recommendation for User A (WITH pattern)
     log(colors.yellow, 'User A (WITH pattern at 9 AM):');
     const recUserA = await recommender.getTopRecommendation(userA.id, {
-      preferredCapacity: 'medium',
-      preferredTimeSlot: 'morning'
+      preferredCapacity: 'medium'
     });
 
     // Get recommendation for User B (NO pattern)
     log(colors.yellow, 'User B (NO pattern):');
     const recUserB = await recommender.getTopRecommendation(userB.id, {
-      preferredCapacity: 'medium',
-      preferredTimeSlot: 'morning'
+      preferredCapacity: 'medium'
     });
 
     Date.now = originalDateNow;

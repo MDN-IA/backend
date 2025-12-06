@@ -135,14 +135,22 @@ class RoomRecommenderML {
     }
 
     // 2. Score de historial del usuario (20%)
-    const historyScore = await this.calculateUserHistoryScore(room, userData);
+    const historyResult = await this.calculateUserHistoryScore(room, userData);
+    const historyScore = historyResult.score || historyResult; // Compatibilidad
+    const visitCount = historyResult.visitCount || 0;
+
     totalScore += historyScore * this.weights.userHistory;
     scoreBreakdown.history = historyScore;
 
-    if (historyScore > 0.8) {
-      reasons.push('You have used this room frequently');
-    } else if (historyScore > 0.6) {
-      reasons.push('You have visited this room before');
+    // Generar razones personalizadas según el número de visitas
+    if (visitCount >= 50) {
+      reasons.push(`Very frequent visitor (${visitCount} visits) - Your favorite room!`);
+    } else if (visitCount >= 25) {
+      reasons.push(`Frequent visitor (${visitCount} visits) - You know this room well`);
+    } else if (visitCount >= 10) {
+      reasons.push(`Regular visitor (${visitCount} visits) - You often use this room`);
+    } else if (visitCount >= 3) {
+      reasons.push(`Occasional visitor (${visitCount} visits) - You have been here before`);
     }
 
     // 3. Score de usuarios similares (8%)
@@ -258,19 +266,25 @@ class RoomRecommenderML {
       }
 
       // 2. Score de historial del usuario (20%)
-      const historyScore = await this.calculateUserHistoryScore(room, userData);
+      const historyResult = await this.calculateUserHistoryScore(room, userData);
+      const historyScore = historyResult.score || historyResult; // Compatibilidad
+      const visitCount = historyResult.visitCount || 0;
+
       totalScore += historyScore * this.weights.userHistory;
       scoreBreakdown.history = historyScore;
 
-      // Las razones de historial SOLO aparecen con 3+ visitas confirmadas
-      // 0.95 = 8+ visitas, 0.85 = 4+ visitas, 0.70 = 3+ visitas
-      // Scores menores (2 visitas o menos) NO generan razones
-      if (historyScore >= 0.85) {
-        reasons.push('You have used this room frequently');
-      } else if (historyScore >= 0.70) {
-        reasons.push('You have visited this room before');
+      // Generar razones personalizadas según el número de visitas
+      // Baremos: 0=New User, 3=Occasional, 10=Regular, 25=Frequent, 50=Very Frequent
+      if (visitCount >= 50) {
+        reasons.push(`Very frequent visitor (${visitCount} visits) - Your favorite room!`);
+      } else if (visitCount >= 25) {
+        reasons.push(`Frequent visitor (${visitCount} visits) - You know this room well`);
+      } else if (visitCount >= 10) {
+        reasons.push(`Regular visitor (${visitCount} visits) - You often use this room`);
+      } else if (visitCount >= 3) {
+        reasons.push(`Occasional visitor (${visitCount} visits) - You have been here before`);
       }
-      // Si historyScore < 0.70 (menos de 3 visitas), NO se agrega ninguna razón de historial
+      // Si visitCount < 3 (New User o muy pocas visitas), NO se muestra razón
 
       // 3. Score de usuarios similares (8%)
       const similarUsersScore = await this.calculateSimilarUsersScore(room, userData);
@@ -387,9 +401,10 @@ class RoomRecommenderML {
 
   /**
    * 2. Calcular score basado en historial del usuario
+   * Retorna: { score, visitCount } para generar razones personalizadas
    */
   async calculateUserHistoryScore(room, userData) {
-    if (!userData) return 0.5;
+    if (!userData) return { score: 0.5, visitCount: 0 };
 
     try {
       // Intentar obtener historial real de la base de datos
@@ -406,23 +421,31 @@ class RoomRecommenderML {
         });
 
         // Score basado ÚNICAMENTE en frecuencia de visitas reales
-        // Las razones solo aparecen con 3+ visitas (score >= 0.70)
-        if (visitCount >= 8) return 0.95;   // Usuario muy frecuente (>= 8 visitas)
-        if (visitCount >= 4) return 0.85;   // Usuario frecuente (>= 4 visitas)
-        if (visitCount >= 3) return 0.70;   // Ha visitado antes (>= 3 visitas) ⬅️ CAMBIO AQUÍ
-        if (visitCount >= 1) return 0.55;   // Pocas visitas (1-2 visitas, sin razón)
+        // Nuevos baremos según número de visitas
+        let score;
+        if (visitCount >= 50) {
+          score = 0.98;  // Very Frequent User (50+ visitas)
+        } else if (visitCount >= 25) {
+          score = 0.92;  // Frequent User (25-49 visitas)
+        } else if (visitCount >= 10) {
+          score = 0.85;  // Regular User (10-24 visitas)
+        } else if (visitCount >= 3) {
+          score = 0.70;  // Occasional User (3-9 visitas)
+        } else if (visitCount >= 1) {
+          score = 0.55;  // Pocas visitas (1-2 visitas, sin razón)
+        } else {
+          score = 0.3;   // New User (0 visitas)
+        }
 
-        // Si visitCount === 0, NO usar temperatura, sino score base bajo
-        // Esto es CRÍTICO para evitar que usuarios sin historial vean razones de visitas
-        return 0.3; // Score bajo para usuario sin historial en esta sala
+        return { score, visitCount };
       }
 
       // Si la tabla no existe, usar score neutral (sin razones de historial)
-      return 0.5;
+      return { score: 0.5, visitCount: 0 };
 
     } catch (error) {
       // Si hay error, usar score neutral (sin razones de historial)
-      return 0.5;
+      return { score: 0.5, visitCount: 0 };
     }
   }
 
@@ -714,28 +737,13 @@ class RoomRecommenderML {
           }
         }
       } catch (error) {
-        // Si falla, continuar con el análisis manual
-        console.log('[ML] Could not analyze temporal history, using preferences:', error.message);
+        // Si falla, usar score base neutro
+        console.log('[ML] Could not analyze temporal history:', error.message);
       }
     }
 
     // =========================================================================
-    // PARTE 2: Usar preferencias manuales del usuario (fallback o complemento)
-    // Solo si NO hay historial - NO genera hasTimePattern
-    // =========================================================================
-    const timeSlot = preferences.preferredTimeSlot;
-    if (timeSlot) {
-      if (timeSlot === 'morning' && currentHour >= 6 && currentHour < 12) {
-        score += 0.25;
-      } else if (timeSlot === 'afternoon' && currentHour >= 12 && currentHour < 18) {
-        score += 0.25;
-      } else if (timeSlot === 'evening' && currentHour >= 18 && currentHour < 24) {
-        score += 0.25;
-      }
-    }
-
-    // =========================================================================
-    // PARTE 3: Análisis general de disponibilidad por día
+    // PARTE 2: Análisis general de disponibilidad por día
     // =========================================================================
     // Fin de semana = generalmente menos ocupado = mejor para encontrar espacio
     if (currentDay === 0 || currentDay === 6) {
@@ -964,7 +972,7 @@ class RoomRecommenderML {
       // PASO 3: RECALCULAR SCORE CON PESOS ACTUALES (predicción original)
       // ======================================================================
       console.log('[TRAINING] Calculating original prediction with current weights...');
-      const preferences = { preferredCapacity: 'medium', preferredTimeSlot: 'morning' };
+      const preferences = { preferredCapacity: 'medium' };
       const originalScore = await this.calculateRoomScore(room, user, preferences);
 
       console.log(`  - Predicted score: ${(originalScore.totalScore * 100).toFixed(2)}%`);

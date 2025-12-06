@@ -6,8 +6,9 @@ const {
 } = require('../controllers/reco.controller');
 
 // Obtener recomendación de sala usando ML
-// GET /api/recommendations?userId=1&preferredCapacity=small&preferredTimeSlot=morning
-// POST /api/recommendations con body: { userId, preferredCapacity, preferredTimeSlot }
+// GET /api/recommendations?userId=1&preferredCapacity=small
+// POST /api/recommendations con body: { userId, preferredCapacity }
+// NOTA: El ML aprende automáticamente los patrones temporales del historial del usuario
 router.get('/', recommendRoom);
 router.post('/', recommendRoom);
 

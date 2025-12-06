@@ -211,8 +211,7 @@ async function runTest() {
 
     for (const userData of usuarios) {
       const rec = await recommender.getTopRecommendation(userData.user.id, {
-        preferredCapacity: 'medium',
-        preferredTimeSlot: 'morning'
+        preferredCapacity: 'medium'
       });
 
       if (rec) {

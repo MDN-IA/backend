@@ -5,8 +5,11 @@ const { recommender } = require('../ml/roomRecommender');
  * Controlador de recomendaciones usando módulo ML independiente
  *
  * Endpoints:
- * - GET /api/recommendations?userId=X&preferredCapacity=small&preferredTimeSlot=morning
+ * - GET /api/recommendations?userId=X&preferredCapacity=small
  * - POST /api/recommendations con body: { userId, preferences }
+ *
+ * NOTA: El ML aprende automáticamente los patrones temporales del usuario.
+ * No es necesario especificar preferredTimeSlot manualmente.
  */
 
 /**
@@ -14,7 +17,6 @@ const { recommender } = require('../ml/roomRecommender');
  * Query params:
  * - userId: ID del usuario (opcional)
  * - preferredCapacity: small/medium/large (opcional)
- * - preferredTimeSlot: morning/afternoon/evening (opcional)
  */
 async function recommendRoom(req, res) {
   try {
@@ -25,11 +27,10 @@ async function recommendRoom(req, res) {
     // Extraer parámetros de query o body
     const userId = req.query.userId || req.body?.userId || null;
     const preferences = {
-      preferredCapacity: req.query.preferredCapacity || req.body?.preferredCapacity || null,
-      preferredTimeSlot: req.query.preferredTimeSlot || req.body?.preferredTimeSlot || null
+      preferredCapacity: req.query.preferredCapacity || req.body?.preferredCapacity || null
     };
 
-    console.log(`User ID: ${userId || 'sin usuario'}`);
+    console.log(`User ID: ${userId || 'anonymous user'}`);
     console.log(`Preferences:`, preferences);
 
     // Obtener recomendación usando el módulo ML
