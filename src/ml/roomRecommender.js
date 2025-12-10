@@ -1,18 +1,39 @@
 
 /**
- * Módulo de Machine Learning para Recomendación de Salas
+ * HYBRID MACHINE LEARNING ROOM RECOMMENDER SYSTEM
  *
- * Sistema híbrido que combina:
- * - Filtrado colaborativo (usuarios similares)
- * - Filtrado basado en contenido (características de salas)
- * - Reglas de negocio (disponibilidad, capacidad)
- * - Análisis temporal (patrones de uso por hora/día)
+ * TWO MAIN PHASES:
  *
- * PRIORIDADES:
- * 1. Temperatura del usuario (35%)
- * 2. Disponibilidad/Capacidad (30%)
- * 3. Historial del usuario (20%)
- * 4. Otros factores (15%)
+ * 1. INFERENCE PHASE (Prediction)
+ *    - User requests recommendation → System predicts best room
+ *    - Calculates compatibility scores for all rooms
+ *    - Combines 6 factors using weighted sum
+ *    - Returns top recommendation with reasons
+ *    - Time: ~50-100ms
+ *
+ * 2. TRAINING PHASE (Learning)
+ *    - User gives feedback → System learns and improves
+ *    - Calculates prediction error
+ *    - Adjusts weights using Gradient Descent
+ *    - Saves metrics to database
+ *    - Time: ~10-50ms
+ *
+ * ═══════════════════════════════════════════════════════════
+ *
+ * HYBRID APPROACH - Combines 4 ML techniques:
+ * - Collaborative Filtering (similar users, user history)
+ * - Content-Based Filtering (temperature, light, humidity)
+ * - Time Series Analysis (temporal patterns)
+ * - Business Rules (availability, capacity)
+ *
+ * FACTOR WEIGHTS:
+ * - Temperature: 35% (HIGHEST PRIORITY)
+ * - Availability: 30%
+ * - User History: 20%
+ * - Similar Users: 8%
+ * - Temporal Patterns: 5%
+ * - Capacity Match: 2%
+ * Total: 100%
  */
 
 const { Rooms, Users, sequelize } = require('../models');
